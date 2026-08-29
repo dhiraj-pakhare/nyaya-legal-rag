@@ -1,0 +1,30 @@
+{"id": "G01", "type": "exact_lookup", "query": "What is section 103 BNS?", "expected_act": "BNS", "expected_sections": ["103", "103(1)", "103(2)"], "should_refuse": false}
+{"id": "G02", "type": "exact_lookup", "query": "BNS s.103", "expected_act": "BNS", "expected_sections": ["103", "103(1)", "103(2)"], "should_refuse": false}
+{"id": "G03", "type": "exact_lookup", "query": "What is section 35 BNSS?", "expected_act": "BNSS", "expected_sections": ["35"], "should_refuse": false}
+{"id": "G04", "type": "exact_lookup", "query": "Explain section 187", "expected_act": "BNSS", "expected_sections": ["187"], "should_refuse": false}
+{"id": "G05", "type": "exact_lookup", "query": "Section 141 BNSS", "expected_act": "BNSS", "expected_sections": ["141"], "should_refuse": false}
+{"id": "G06", "type": "exact_lookup", "query": "s. 40", "expected_act": "BNSS", "expected_sections": ["40"], "should_refuse": false}
+{"id": "G07", "type": "exact_lookup", "query": "Section 35(1)", "expected_act": "BNSS", "expected_sections": ["35"], "should_refuse": false}
+{"id": "G08", "type": "exact_lookup", "query": "Section 105 BNS", "expected_act": "BNS", "expected_sections": ["105"], "should_refuse": false}
+{"id": "G09", "type": "factual_lookup", "query": "What is the punishment for culpable homicide not amounting to murder?", "expected_act": "BNS", "expected_sections": ["105"], "should_refuse": false}
+{"id": "G10", "type": "factual_lookup", "query": "Under what provision is a person punished for causing someone's death without the intention to murder?", "expected_act": "BNS", "expected_sections": ["105"], "should_refuse": false}
+{"id": "G11", "type": "factual_lookup", "query": "What is the maximum period of police custody authorised by a Magistrate during investigation?", "expected_act": "BNSS", "expected_sections": ["187"], "should_refuse": false}
+{"id": "G12", "type": "factual_lookup", "query": "Imprisonment in default of security", "expected_act": "BNSS", "expected_sections": ["141"], "should_refuse": false}
+{"id": "G13", "type": "factual_lookup", "query": "Recording of search and seizure through audio-video electronic means", "expected_act": "BNSS", "expected_sections": ["105"], "should_refuse": false}
+{"id": "G14", "type": "factual_lookup", "query": "When police may arrest without warrant", "expected_act": "BNSS", "expected_sections": ["35"], "should_refuse": false}
+{"id": "G15", "type": "factual_lookup", "query": "Arrest by private person and procedure on such arrest", "expected_act": "BNSS", "expected_sections": ["40"], "should_refuse": false}
+{"id": "G16", "type": "factual_lookup", "query": "Sentence of imprisonment in default of fine", "expected_act": "BNSS", "expected_sections": ["24"], "should_refuse": false}
+{"id": "G17", "type": "legal_reasoning", "query": "Can a common citizen or private person apprehend someone who commits a non-bailable offence in their presence?", "expected_act": "BNSS", "expected_sections": ["40"], "should_refuse": false}
+{"id": "G18", "type": "legal_reasoning", "query": "Under what circumstances can an investigation continue beyond 24 hours without releasing the accused on bail?", "expected_act": "BNSS", "expected_sections": ["187"], "should_refuse": false}
+{"id": "G19", "type": "legal_reasoning", "query": "What are the legal requirements when a search of a closed place is conducted under BNSS?", "expected_act": "BNSS", "expected_sections": ["103"], "should_refuse": false}
+{"id": "G20", "type": "legal_reasoning", "query": "Is culpable homicide not amounting to murder bailable or non-bailable under BNS?", "expected_act": "BNS", "expected_sections": ["105"], "should_refuse": false}
+{"id": "G21", "type": "legal_reasoning", "query": "What is the penalty for mob lynching or murder committed by a group of five or more persons under BNS?", "expected_act": "BNS", "expected_sections": ["103", "103(2)"], "should_refuse": false}
+{"id": "G22", "type": "legal_reasoning", "query": "Can a police officer depute a subordinate officer to arrest a person without a warrant?", "expected_act": "BNSS", "expected_sections": ["55"], "should_refuse": false}
+{"id": "G23", "type": "legal_reasoning", "query": "What procedure must be followed when a person is arrested and taken before a Magistrate?", "expected_act": "BNSS", "expected_sections": ["57", "187"], "should_refuse": false}
+{"id": "G24", "type": "must_refuse", "query": "What is the legal penalty for jaywalking in Ohio under municipal traffic codes?", "expected_act": null, "expected_sections": [], "should_refuse": true}
+{"id": "G25", "type": "must_refuse", "query": "How does the Fourth Amendment of the US Constitution protect against warrantless search and seizure?", "expected_act": null, "expected_sections": [], "should_refuse": true}
+{"id": "G26", "type": "must_refuse", "query": "What are the applicable GST tax rates on imported smartphones in India?", "expected_act": null, "expected_sections": [], "should_refuse": true}
+{"id": "G27", "type": "must_refuse", "query": "What is Section 9999 of the Bharatiya Nyaya Sanhita?", "expected_act": null, "expected_sections": [], "should_refuse": true}
+{"id": "G28", "type": "must_refuse", "query": "What is the corporate income tax rate under the Internal Revenue Code of California?", "expected_act": null, "expected_sections": [], "should_refuse": true}
+{"id": "G29", "type": "must_refuse", "query": "Who won the FIFA World Cup in 2022 and how was the final match scored?", "expected_act": null, "expected_sections": [], "should_refuse": true}
+{"id": "G30", "type": "must_refuse", "query": "Explain Section 8888 BNSS regarding international copyright treaties", "expected_act": null, "expected_sections": [], "should_refuse": true}

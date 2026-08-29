@@ -1,0 +1,21 @@
+# Core Statutory Ingestion & PDF Extraction
+pypdf==5.3.0
+pdfplumber==0.11.5
+pydantic==2.10.6
+
+# Open-Source Embeddings & Cross-Encoder Reranking
+sentence-transformers==3.4.1
+torch>=2.2.0
+transformers>=4.48.0
+numpy>=1.24.0
+
+# Vector Database
+qdrant-client==1.13.2
+
+# Sparse BM25 Keyword Retrieval
+rank-bm25==0.2.2
+
+# Testing & Quality
+pytest==8.4.2
+anyio==4.8.0
+tqdm>=4.66.0

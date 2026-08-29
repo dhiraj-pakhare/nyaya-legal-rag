@@ -1,0 +1,55 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Source PDFs & Raw Documents (Per assignment specification)
+*.pdf
+BNS bare act 2023.pdf
+DhronAI-Technical-Assignment.pdf
+data/raw/
+data/forms/
+
+# Local Vector Storage & Databases
+qdrant_storage/
+*.sqlite
+*.sqlite3
+*.db
+bm25_index.pkl
+
+# Python Caches & Build Artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Evaluation Benchmark Dumps & Temporary Logs
+eval_results_*.json
+calibration_results.json
+*.log
+
+# Node & Frontend (for upcoming phases)
+node_modules/
+.next/
+out/
+
+# IDE & OS Artifacts
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
