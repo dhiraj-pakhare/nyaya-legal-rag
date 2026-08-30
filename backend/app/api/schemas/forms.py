@@ -1,4 +1,4 @@
-"""Statutory Form Request and Response DTO schemas (Phase 8)."""
+"""Statutory Form Request and Response DTO schemas (Part B)."""
 
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
@@ -42,6 +42,32 @@ class StatutoryFormDTO(BaseModel):
     signatures: List[FormSignatureDTO] = Field(default_factory=list)
     tables: List[FormTableHeadDTO] = Field(default_factory=list)
     provenance_citation: str
+
+
+class StatutoryFormListItemDTO(BaseModel):
+    """Summary item for statutory forms library listing."""
+    form_number: int
+    form_id: str
+    title: str
+    slug: str
+    filename: str
+    applicable_sections: List[str] = Field(default_factory=list)
+    page_start: int
+    page_end: int
+    page_count: int
+    byte_size: Optional[int] = None
+    sha256: Optional[str] = None
+    extraction_confidence: float = 1.0
+    needs_review: bool = False
+    download_url: str
+    provenance: str
+
+
+class StatutoryFormListResponseDTO(BaseModel):
+    """Response envelope for forms library listing."""
+    total_forms: int = 58
+    schedule: str = "The Second Schedule"
+    forms: List[StatutoryFormListItemDTO] = Field(default_factory=list)
 
 
 class FormLookupRequestDTO(BaseModel):

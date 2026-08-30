@@ -312,3 +312,33 @@ If raw LLM tokens are streamed directly to the client before citation validation
 - `GET /api/v1/ready`: Deep dependency readiness probe inspecting Qdrant, embeddings, forms registry, and LLM configuration without leaking credentials, internal filesystem paths, or raw stack traces.
 - Anti-enumeration: Missing documents and unowned cross-tenant documents return an identical uniform `404 Not Found` response.
 
+---
+
+## 13. Part B: Statutory Forms PDF Export, Manifest Generation & Download Endpoints
+
+### 1. Vector-Fidelity Page Extraction
+- **Decision**: Sliced original PDF vector/text page objects directly from `BNS bare act 2023.pdf` using `pypdf.PdfWriter()` rather than rasterizing or re-rendering as images.
+- **Result**: Preserves pure vector text fidelity, searchable typography, and small discrete PDF file sizes ($< 600\text{KB}$ per form). Multi-page Form 33 is extracted seamlessly across pages 222–224 as a single 3-page PDF.
+
+### 2. Deterministic Slugification & Filename Convention
+- **Convention**: `FORM-<number>_<slugified-title>.pdf` (e.g. `FORM-1_Notice-for-Appearance-by-the-Police.pdf`, `FORM-33_Charges.pdf`).
+- **Safety**: Strips all non-alphanumeric characters except hyphens, capitalizes non-conjunction words, handles sub-hyphenation (e.g. `BAIL-BOND` $\rightarrow$ `Bail-Bond`), and completely eliminates directory traversal characters.
+
+### 3. Extraction Confidence & `needs_review` Heuristic
+- **Scoring Formula**:
+  $$\text{Confidence} = 0.20 \times S_{\text{num}} + 0.30 \times S_{\text{title}} + 0.25 \times S_{\text{text}} + 0.15 \times S_{\text{sec}} + 0.10 \times S_{\text{struct}}$$
+  where:
+  - $S_{\text{num}} = 1.0$ if $1 \le \text{form\_number} \le 58$.
+  - $S_{\text{title}} = 1.0$ if scraped title $\ge 10$ chars and free of header artifacts; $0.85$ if $\ge 3$ chars.
+  - $S_{\text{text}} = 1.0$ if raw extracted text $\ge 150$ chars; $0.85$ if $\ge 50$ chars.
+  - $S_{\text{sec}} = 1.0$ if statutory section reference parsed; $0.8$ otherwise.
+  - $S_{\text{struct}} = 1.0$ if placeholders/fields/signatures detected; $0.7$ otherwise.
+- **Flag**: `needs_review = True` if $\text{Confidence} < 0.85$ or $\text{text\_length} < 50$ chars.
+
+### 4. Manifest Integrity (`forms_manifest.json`)
+- Emitted to `data/forms/forms_manifest.json` containing exactly 58 contiguous entries with SHA-256 digests, byte sizes, confidence scores, and section mappings.
+
+### 5. In-Memory Streaming ZIP Generation
+- `GET /api/v1/forms/download-all` compresses all 58 form PDFs into an in-memory `io.BytesIO()` ZIP stream (`bnss_second_schedule_forms_1_to_58.zip`), ensuring zero leftover temporary zip files on disk and zero path traversal risk.
+
+

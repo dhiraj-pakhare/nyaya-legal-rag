@@ -95,6 +95,10 @@ class StatutoryFormRegistry:
         """Return all 58 statutory forms in sequential order."""
         return list(self._forms)
 
+    def get_all_forms(self) -> List[StatutoryForm]:
+        """Alias for list_all_forms."""
+        return self.list_all_forms()
+
     def count(self) -> int:
         """Return count of registered statutory forms."""
         return len(self._forms)

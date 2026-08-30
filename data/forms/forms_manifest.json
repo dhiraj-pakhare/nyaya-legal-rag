@@ -1,0 +1,1070 @@
+{
+  "total_forms": 58,
+  "source_document": "BNS bare act 2023.pdf",
+  "schedule": "The Second Schedule (Bharatiya Nagarik Suraksha Sanhita, 2023)",
+  "forms": [
+    {
+      "form_number": 1,
+      "form_id": "BNSS_FORM_01",
+      "title": "NOTICE FOR APPEARANCE BY THE POLICE",
+      "slug": "Notice-for-Appearance-by-the-Police",
+      "filename": "FORM-1_Notice-for-Appearance-by-the-Police.pdf",
+      "section_references": [
+        "35(3)"
+      ],
+      "page_start": 190,
+      "page_end": 190,
+      "page_count": 1,
+      "byte_size": 517330,
+      "sha256": "445d85f937d8bf5fe757f5c4f1776a0bb595d9bca981263dc5725b6fa63a0fee",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 1]"
+    },
+    {
+      "form_number": 2,
+      "form_id": "BNSS_FORM_02",
+      "title": "SUMMONS TO AN ACCUSED PERSON",
+      "slug": "Summons-to-an-Accused-Person",
+      "filename": "FORM-2_Summons-to-an-Accused-Person.pdf",
+      "section_references": [
+        "63"
+      ],
+      "page_start": 191,
+      "page_end": 191,
+      "page_count": 1,
+      "byte_size": 516890,
+      "sha256": "3b5232c6c42606818204acdf5af49ec5ed5121d2e35fe19e983d053daed0fe2e",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 2]"
+    },
+    {
+      "form_number": 3,
+      "form_id": "BNSS_FORM_03",
+      "title": "WARRANT OF ARREST",
+      "slug": "Warrant-of-Arrest",
+      "filename": "FORM-3_Warrant-of-Arrest.pdf",
+      "section_references": [
+        "72"
+      ],
+      "page_start": 192,
+      "page_end": 192,
+      "page_count": 1,
+      "byte_size": 517455,
+      "sha256": "6aa09964b68dee2503e290a8222f03f64fcbfb027a9c607e67011d041ac46339",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 3]"
+    },
+    {
+      "form_number": 4,
+      "form_id": "BNSS_FORM_04",
+      "title": "BOND AND BAIL-BOND AFTER ARREST UNDER A WARRANT",
+      "slug": "Bond-and-Bail-Bond-after-Arrest-under-a-Warrant",
+      "filename": "FORM-4_Bond-and-Bail-Bond-after-Arrest-under-a-Warrant.pdf",
+      "section_references": [
+        "83"
+      ],
+      "page_start": 193,
+      "page_end": 193,
+      "page_count": 1,
+      "byte_size": 575381,
+      "sha256": "3ca58e06c6813a98939d46c2473dca801a616f5aa67022a03dc6549834e46465",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 4]"
+    },
+    {
+      "form_number": 5,
+      "form_id": "BNSS_FORM_05",
+      "title": "PROCLAMA TION REQUIRING THE APPEARANCE OF A PERSON ACCUSED",
+      "slug": "Proclama-Tion-Requiring-the-Appearance-of-a-Person-Accused",
+      "filename": "FORM-5_Proclama-Tion-Requiring-the-Appearance-of-a-Person-Accused.pdf",
+      "section_references": [
+        "84"
+      ],
+      "page_start": 194,
+      "page_end": 194,
+      "page_count": 1,
+      "byte_size": 517597,
+      "sha256": "a78451ffea95d63ad61984351a1dad90b8fc5a8ced08acd881ff67e9436bb82c",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 5]"
+    },
+    {
+      "form_number": 6,
+      "form_id": "BNSS_FORM_06",
+      "title": "PROCLAMATION REQUIRING THE ATTENDANCE OF A WITNESS",
+      "slug": "Proclamation-Requiring-the-Attendance-of-a-Witness",
+      "filename": "FORM-6_Proclamation-Requiring-the-Attendance-of-a-Witness.pdf",
+      "section_references": [
+        "84",
+        "90",
+        "93"
+      ],
+      "page_start": 195,
+      "page_end": 195,
+      "page_count": 1,
+      "byte_size": 517567,
+      "sha256": "6098068f0e16a5d18c0a3a0b51cc907f4ca9ea7f36da2d213fadef4eebab2928",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 6]"
+    },
+    {
+      "form_number": 7,
+      "form_id": "BNSS_FORM_07",
+      "title": "ORDER OF ATTACHMENT TO COMPEL THE ATTENDANCE OF A WITNESS",
+      "slug": "Order-of-Attachment-to-Compel-the-Attendance-of-a-Witness",
+      "filename": "FORM-7_Order-of-Attachment-to-Compel-the-Attendance-of-a-Witness.pdf",
+      "section_references": [
+        "85"
+      ],
+      "page_start": 196,
+      "page_end": 196,
+      "page_count": 1,
+      "byte_size": 517731,
+      "sha256": "d23d337cb6f4110e470efc30bdabbda6a3eae5e86906ce45373f3f404ba114c4",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 7]"
+    },
+    {
+      "form_number": 8,
+      "form_id": "BNSS_FORM_08",
+      "title": "ORDER OF ATTACHMENT TO COMPEL THE APPEARANCE OF A PERSON ACCUSED",
+      "slug": "Order-of-Attachment-to-Compel-the-Appearance-of-a-Person-Accused",
+      "filename": "FORM-8_Order-of-Attachment-to-Compel-the-Appearance-of-a-Person-Accused.pdf",
+      "section_references": [
+        "85"
+      ],
+      "page_start": 197,
+      "page_end": 197,
+      "page_count": 1,
+      "byte_size": 518141,
+      "sha256": "8fece89184134d26b8914acbac410c65a05f26c730baee8a88c5492b7e4f783f",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 8]"
+    },
+    {
+      "form_number": 9,
+      "form_id": "BNSS_FORM_09",
+      "title": "ORDER AUTHORISING AN ATTACHMENT BY THE DISTRICT MAGISTRATE OR COLLECTOR",
+      "slug": "Order-Authorising-an-Attachment-by-the-District-Magistrate-or-Collector",
+      "filename": "FORM-9_Order-Authorising-an-Attachment-by-the-District-Magistrate-or-Collector.pdf",
+      "section_references": [
+        "85"
+      ],
+      "page_start": 198,
+      "page_end": 198,
+      "page_count": 1,
+      "byte_size": 518297,
+      "sha256": "66732e50e8699b757d4674b657d352c1179c9f4eaea7b6a57c886b322ddf9b80",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 9]"
+    },
+    {
+      "form_number": 10,
+      "form_id": "BNSS_FORM_10",
+      "title": "WARRANT IN THE FIRST INSTANCE TO BRING UP A WITNESS",
+      "slug": "Warrant-in-the-First-Instance-to-Bring-Up-a-Witness",
+      "filename": "FORM-10_Warrant-in-the-First-Instance-to-Bring-Up-a-Witness.pdf",
+      "section_references": [
+        "90"
+      ],
+      "page_start": 199,
+      "page_end": 199,
+      "page_count": 1,
+      "byte_size": 517424,
+      "sha256": "19f54995ca7d8c7675380a48c7bc9365c9a5d4ffdba6aeaaa621b89b44bf45cf",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 10]"
+    },
+    {
+      "form_number": 11,
+      "form_id": "BNSS_FORM_11",
+      "title": "WARRANT TO SEARCH AFTER INFORMATION OF A PARTICULAR OFFENCE",
+      "slug": "Warrant-to-Search-after-Information-of-a-Particular-Offence",
+      "filename": "FORM-11_Warrant-to-Search-after-Information-of-a-Particular-Offence.pdf",
+      "section_references": [
+        "96"
+      ],
+      "page_start": 200,
+      "page_end": 200,
+      "page_count": 1,
+      "byte_size": 517799,
+      "sha256": "b46bd104d4b0993641a5a7fcaaabf90a55a7dfe614b352252f7184c9221cf7f2",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 11]"
+    },
+    {
+      "form_number": 12,
+      "form_id": "BNSS_FORM_12",
+      "title": "WARRANT TO SEARCH SUSPECTED PLACE OF DEPOSIT",
+      "slug": "Warrant-to-Search-Suspected-Place-of-Deposit",
+      "filename": "FORM-12_Warrant-to-Search-Suspected-Place-of-Deposit.pdf",
+      "section_references": [
+        "97"
+      ],
+      "page_start": 201,
+      "page_end": 201,
+      "page_count": 1,
+      "byte_size": 517878,
+      "sha256": "65b322d2bb3599da6d947d9d49392a2d67b8f8225f4fcf048fee352b5a884bf2",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 12]"
+    },
+    {
+      "form_number": 13,
+      "form_id": "BNSS_FORM_13",
+      "title": "BOND TO KEEP THE PEACE",
+      "slug": "Bond-to-Keep-the-Peace",
+      "filename": "FORM-13_Bond-to-Keep-the-Peace.pdf",
+      "section_references": [
+        "125",
+        "126"
+      ],
+      "page_start": 202,
+      "page_end": 202,
+      "page_count": 1,
+      "byte_size": 517303,
+      "sha256": "219c8fbb18343bebf398ade761496813567925db4523ca16ab66f70db1ee1d20",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 13]"
+    },
+    {
+      "form_number": 14,
+      "form_id": "BNSS_FORM_14",
+      "title": "BOND FOR GOOD BEHA VIOUR",
+      "slug": "Bond-for-Good-Beha-Viour",
+      "filename": "FORM-14_Bond-for-Good-Beha-Viour.pdf",
+      "section_references": [
+        "127",
+        "128",
+        "129"
+      ],
+      "page_start": 203,
+      "page_end": 203,
+      "page_count": 1,
+      "byte_size": 575521,
+      "sha256": "a52e9cf3ea4719dd199bcd276cd991785762d99477f1aace3e7f4703d8ac8f0d",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 14]"
+    },
+    {
+      "form_number": 15,
+      "form_id": "BNSS_FORM_15",
+      "title": "SUMMONS ON INFORMATION OF A PROBABLE BREACH OF THE PEACE",
+      "slug": "Summons-on-Information-of-a-Probable-Breach-of-the-Peace",
+      "filename": "FORM-15_Summons-on-Information-of-a-Probable-Breach-of-the-Peace.pdf",
+      "section_references": [
+        "132"
+      ],
+      "page_start": 204,
+      "page_end": 204,
+      "page_count": 1,
+      "byte_size": 517718,
+      "sha256": "a8404a62fefa169dfb259dd43752164b5e122dd889fb329dfd7cdcce59065b7a",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 15]"
+    },
+    {
+      "form_number": 16,
+      "form_id": "BNSS_FORM_16",
+      "title": "WARRANT OF COMMITMENT ON FAILURE TO FIND SECURITY TO KEEP THE PEACE",
+      "slug": "Warrant-of-Commitment-on-Failure-to-Find-Security-to-Keep-the-Peace",
+      "filename": "FORM-16_Warrant-of-Commitment-on-Failure-to-Find-Security-to-Keep-the-Peace.pdf",
+      "section_references": [
+        "141"
+      ],
+      "page_start": 205,
+      "page_end": 205,
+      "page_count": 1,
+      "byte_size": 517722,
+      "sha256": "5af14193fcd874b53d96f510fb88868c4503f23026f7dec2c3a73241c92fe57f",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 16]"
+    },
+    {
+      "form_number": 17,
+      "form_id": "BNSS_FORM_17",
+      "title": "WARRANT OF COMMITMENT ON FAILURE TO FIND SECURITY FOR GOOD BEHA VIOUR",
+      "slug": "Warrant-of-Commitment-on-Failure-to-Find-Security-for-Good-Beha-Viour",
+      "filename": "FORM-17_Warrant-of-Commitment-on-Failure-to-Find-Security-for-Good-Beha-Viour.pdf",
+      "section_references": [
+        "141"
+      ],
+      "page_start": 206,
+      "page_end": 206,
+      "page_count": 1,
+      "byte_size": 518303,
+      "sha256": "3bde2bda60adc41eceb152aaa69403c6290d6136f21b807e633a8a73378c0cc9",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 17]"
+    },
+    {
+      "form_number": 18,
+      "form_id": "BNSS_FORM_18",
+      "title": "WARRANT TO DISCHARGE A PERSON IMPRISONED ON FAILURE TO GIVE SECURITY",
+      "slug": "Warrant-to-Discharge-a-Person-Imprisoned-on-Failure-to-Give-Security",
+      "filename": "FORM-18_Warrant-to-Discharge-a-Person-Imprisoned-on-Failure-to-Give-Security.pdf",
+      "section_references": [
+        "141",
+        "142"
+      ],
+      "page_start": 207,
+      "page_end": 207,
+      "page_count": 1,
+      "byte_size": 517428,
+      "sha256": "5b57259f70ce2d6c08fd634ce8ca7625b971cb6f3882e5e62130fcef521ba42b",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 18]"
+    },
+    {
+      "form_number": 19,
+      "form_id": "BNSS_FORM_19",
+      "title": "WARRANT OF IMPRISONMENT ON FAILURE TO PAY MAINTENANCE",
+      "slug": "Warrant-of-Imprisonment-on-Failure-to-Pay-Maintenance",
+      "filename": "FORM-19_Warrant-of-Imprisonment-on-Failure-to-Pay-Maintenance.pdf",
+      "section_references": [
+        "144"
+      ],
+      "page_start": 208,
+      "page_end": 208,
+      "page_count": 1,
+      "byte_size": 518115,
+      "sha256": "0b19f83dc9287b59191453cd669cdb40b3dcd2139241bc7f9c52e16366627277",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 19]"
+    },
+    {
+      "form_number": 20,
+      "form_id": "BNSS_FORM_20",
+      "title": "WARRANT TO ENFORCE THE PAYMENT OF MAINTENANCE BY ATTACHMENT AND SALE",
+      "slug": "Warrant-to-Enforce-the-Payment-of-Maintenance-by-Attachment-and-Sale",
+      "filename": "FORM-20_Warrant-to-Enforce-the-Payment-of-Maintenance-by-Attachment-and-Sale.pdf",
+      "section_references": [
+        "144"
+      ],
+      "page_start": 209,
+      "page_end": 209,
+      "page_count": 1,
+      "byte_size": 517670,
+      "sha256": "3b36e1ac721ce1d60fa61b0bb729d145219592a6374b45b5f37bf9cf398119fb",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 20]"
+    },
+    {
+      "form_number": 21,
+      "form_id": "BNSS_FORM_21",
+      "title": "ORDER FOR THE REMOVAL OF NUISANCES",
+      "slug": "Order-for-the-Removal-of-Nuisances",
+      "filename": "FORM-21_Order-for-the-Removal-of-Nuisances.pdf",
+      "section_references": [
+        "152"
+      ],
+      "page_start": 210,
+      "page_end": 210,
+      "page_count": 1,
+      "byte_size": 577313,
+      "sha256": "3343f90a89c94abda5703dd146b08814e8efc0100f4bfbc4441d290753d9770f",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 21]"
+    },
+    {
+      "form_number": 22,
+      "form_id": "BNSS_FORM_22",
+      "title": "MAGISTRA TE'S NOTICE AND PEREMPTORY ORDER",
+      "slug": "Magistra-Tes-Notice-and-Peremptory-Order",
+      "filename": "FORM-22_Magistra-Tes-Notice-and-Peremptory-Order.pdf",
+      "section_references": [
+        "160"
+      ],
+      "page_start": 211,
+      "page_end": 211,
+      "page_count": 1,
+      "byte_size": 517117,
+      "sha256": "6053aaa8fa4278f5de99e1da1e32b3051972d5f42e2526e0bc0c4731b0caad01",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 22]"
+    },
+    {
+      "form_number": 23,
+      "form_id": "BNSS_FORM_23",
+      "title": "INJUNCTION TO PROVIDE AGAINST IMMINENT DANGER PENDING INQUIRY",
+      "slug": "Injunction-to-Provide-Against-Imminent-Danger-Pending-Inquiry",
+      "filename": "FORM-23_Injunction-to-Provide-Against-Imminent-Danger-Pending-Inquiry.pdf",
+      "section_references": [
+        "161"
+      ],
+      "page_start": 212,
+      "page_end": 212,
+      "page_count": 1,
+      "byte_size": 517555,
+      "sha256": "98fc55bb0c302359f0b8fa8df59204710279a4fafb06da6493fea0ebaabb0a56",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 23]"
+    },
+    {
+      "form_number": 24,
+      "form_id": "BNSS_FORM_24",
+      "title": "MAGISTRATE'S ORDER PROHIBITING THE REPETITION, ETC., OF A NUISANCE",
+      "slug": "Magistrates-Order-Prohibiting-the-Repetition-Etc-of-a-Nuisance",
+      "filename": "FORM-24_Magistrates-Order-Prohibiting-the-Repetition-Etc-of-a-Nuisance.pdf",
+      "section_references": [
+        "162"
+      ],
+      "page_start": 213,
+      "page_end": 213,
+      "page_count": 1,
+      "byte_size": 517087,
+      "sha256": "7c1b351e9798083db7f8c5d231010b608e7a5ad9c2415a06a877d0dded64a20b",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 24]"
+    },
+    {
+      "form_number": 25,
+      "form_id": "BNSS_FORM_25",
+      "title": "MAGISTRA TE'S ORDER TO PREVENT OBSTRUCTION, RIOT, ETC.",
+      "slug": "Magistra-Tes-Order-to-Prevent-Obstruction-Riot-Etc",
+      "filename": "FORM-25_Magistra-Tes-Order-to-Prevent-Obstruction-Riot-Etc.pdf",
+      "section_references": [
+        "163"
+      ],
+      "page_start": 214,
+      "page_end": 214,
+      "page_count": 1,
+      "byte_size": 576748,
+      "sha256": "029a1ac290d564e0d986a96a93add9dc8d7c263274d60a21a36fe812c3211bf0",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 25]"
+    },
+    {
+      "form_number": 26,
+      "form_id": "BNSS_FORM_26",
+      "title": "MAGISTRA TE'S ORDER DECLARING PARTY ENTITLED TO RETAIN POSSESSION OF LAND, ETC., IN DISPUTE",
+      "slug": "Magistra-Tes-Order-Declaring-Party-Entitled-to-Retain-Possession-of-Land-Etc-in-Dispute",
+      "filename": "FORM-26_Magistra-Tes-Order-Declaring-Party-Entitled-to-Retain-Possession-of-Land-Etc-in-Dispute.pdf",
+      "section_references": [
+        "164"
+      ],
+      "page_start": 215,
+      "page_end": 215,
+      "page_count": 1,
+      "byte_size": 517712,
+      "sha256": "1df0764410979e32128cee1e814b29be3cb5d21da886d7b291094d1540f814f4",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 26]"
+    },
+    {
+      "form_number": 27,
+      "form_id": "BNSS_FORM_27",
+      "title": "WARRANT OF ATTACHMENT IN THE CASE OF A DISPUTE AS TO THE POSSESSION OF LAND, ETC.",
+      "slug": "Warrant-of-Attachment-in-the-Case-of-a-Dispute-as-to-the-Possession-of-Land-Etc",
+      "filename": "FORM-27_Warrant-of-Attachment-in-the-Case-of-a-Dispute-as-to-the-Possession-of-Land-Etc.pdf",
+      "section_references": [
+        "165"
+      ],
+      "page_start": 216,
+      "page_end": 216,
+      "page_count": 1,
+      "byte_size": 518107,
+      "sha256": "9b29bbeb481d4f7d35060fd3df0504b5947ae6b67c37a2e5ca91625f650bc644",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 27]"
+    },
+    {
+      "form_number": 28,
+      "form_id": "BNSS_FORM_28",
+      "title": "MAGISTRATE'S ORDER PROHIBITING THE DOING OF ANYTHING ON LAND OR W ATER",
+      "slug": "Magistrates-Order-Prohibiting-the-Doing-of-Anything-on-Land-or-W-Ater",
+      "filename": "FORM-28_Magistrates-Order-Prohibiting-the-Doing-of-Anything-on-Land-or-W-Ater.pdf",
+      "section_references": [
+        "166"
+      ],
+      "page_start": 217,
+      "page_end": 217,
+      "page_count": 1,
+      "byte_size": 517773,
+      "sha256": "8db21d25c2e39c78b91e34fa1c2d521d360ca4d68b347b8c11cf8603e3b07897",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 28]"
+    },
+    {
+      "form_number": 29,
+      "form_id": "BNSS_FORM_29",
+      "title": "BOND AND BAIL-BOND ON A PRELIMINARY INQUIRY BEFORE A POLICE OFFICER",
+      "slug": "Bond-and-Bail-Bond-on-a-Preliminary-Inquiry-before-a-Police-Officer",
+      "filename": "FORM-29_Bond-and-Bail-Bond-on-a-Preliminary-Inquiry-before-a-Police-Officer.pdf",
+      "section_references": [
+        "189"
+      ],
+      "page_start": 218,
+      "page_end": 218,
+      "page_count": 1,
+      "byte_size": 517911,
+      "sha256": "23a0130e943a09722fa81689b53a2d77bf05304fb143982fd75ab136f20ee760",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 29]"
+    },
+    {
+      "form_number": 30,
+      "form_id": "BNSS_FORM_30",
+      "title": "BOND TO PROSECUTE OR GIVE EVIDENCE",
+      "slug": "Bond-to-Prosecute-or-Give-Evidence",
+      "filename": "FORM-30_Bond-to-Prosecute-or-Give-Evidence.pdf",
+      "section_references": [
+        "190"
+      ],
+      "page_start": 219,
+      "page_end": 219,
+      "page_count": 1,
+      "byte_size": 517010,
+      "sha256": "58d2a8726c1b0725c5911aa0bbbed939bcce08b03fe43dd267dabf61eb0ceff8",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 30]"
+    },
+    {
+      "form_number": 31,
+      "form_id": "BNSS_FORM_31",
+      "title": "SPECIAL SUMMONS TO A PERSON ACCUSED OF A PETTY OFFENCE",
+      "slug": "Special-Summons-to-a-Person-Accused-of-a-Petty-Offence",
+      "filename": "FORM-31_Special-Summons-to-a-Person-Accused-of-a-Petty-Offence.pdf",
+      "section_references": [
+        "229"
+      ],
+      "page_start": 220,
+      "page_end": 220,
+      "page_count": 1,
+      "byte_size": 517691,
+      "sha256": "15c1e83f3ec07b4439df3876aab83302d20b119b128fa169904db8581995383c",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 31]"
+    },
+    {
+      "form_number": 32,
+      "form_id": "BNSS_FORM_32",
+      "title": "NOTICE OF COMMITMENT BY MAGISTRATE TO PUBLIC PROSECUTOR",
+      "slug": "Notice-of-Commitment-by-Magistrate-to-Public-Prosecutor",
+      "filename": "FORM-32_Notice-of-Commitment-by-Magistrate-to-Public-Prosecutor.pdf",
+      "section_references": [
+        "232"
+      ],
+      "page_start": 221,
+      "page_end": 221,
+      "page_count": 1,
+      "byte_size": 574951,
+      "sha256": "fcd32729780341356e6df5f6843511bd2f1570479d72584431bffbeb95a816b6",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 32]"
+    },
+    {
+      "form_number": 33,
+      "form_id": "BNSS_FORM_33",
+      "title": "CHARGES",
+      "slug": "Charges",
+      "filename": "FORM-33_Charges.pdf",
+      "section_references": [
+        "234",
+        "235",
+        "236"
+      ],
+      "page_start": 222,
+      "page_end": 224,
+      "page_count": 3,
+      "byte_size": 626218,
+      "sha256": "bf9efaddd4cfa148e0eee2ccb6f6ef4670c8a1684bdb6f0914d4137bef7cfefc",
+      "extraction_confidence": 0.96,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 33]"
+    },
+    {
+      "form_number": 34,
+      "form_id": "BNSS_FORM_34",
+      "title": "SUMMONS TO WITNESS",
+      "slug": "Summons-to-Witness",
+      "filename": "FORM-34_Summons-to-Witness.pdf",
+      "section_references": [
+        "63",
+        "267"
+      ],
+      "page_start": 225,
+      "page_end": 225,
+      "page_count": 1,
+      "byte_size": 517275,
+      "sha256": "41c4f607c83eec2bb34d675ae1befab950ff4c1d803c7df0286a986ddb0433b7",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 34]"
+    },
+    {
+      "form_number": 35,
+      "form_id": "BNSS_FORM_35",
+      "title": "WARRANT OF COMMITMENT ON A SENTENCE OF IMPRISONMENT OR FINE IF PASSED BY A COURT",
+      "slug": "Warrant-of-Commitment-on-a-Sentence-of-Imprisonment-or-Fine-If-Passed-by-a-Court",
+      "filename": "FORM-35_Warrant-of-Commitment-on-a-Sentence-of-Imprisonment-or-Fine-If-Passed-by-a-Court.pdf",
+      "section_references": [
+        "258",
+        "271",
+        "278"
+      ],
+      "page_start": 226,
+      "page_end": 226,
+      "page_count": 1,
+      "byte_size": 517830,
+      "sha256": "17c8f6ed97c5fad2e7fcfaa16e1681ab13dfe1e80a8e9522c03ed4a1b1a6dbb1",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 35]"
+    },
+    {
+      "form_number": 36,
+      "form_id": "BNSS_FORM_36",
+      "title": "WARRANT OF IMPRISONMENT ON FAILURE TO PAY COMPENSATION",
+      "slug": "Warrant-of-Imprisonment-on-Failure-to-Pay-Compensation",
+      "filename": "FORM-36_Warrant-of-Imprisonment-on-Failure-to-Pay-Compensation.pdf",
+      "section_references": [
+        "273"
+      ],
+      "page_start": 227,
+      "page_end": 227,
+      "page_count": 1,
+      "byte_size": 517681,
+      "sha256": "1c971985bbb7a38b33c3ab02531c5e578a26a7b249cc5ba95866c05ec0e867aa",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 36]"
+    },
+    {
+      "form_number": 37,
+      "form_id": "BNSS_FORM_37",
+      "title": "ORDER REQUIRING PRODUCTION IN COURT OF PERSON IN PRISON FOR ANSWERING TO CHARGE OF OFFENCE",
+      "slug": "Order-Requiring-Production-in-Court-of-Person-in-Prison-for-Answering-to-Charge-of-Offence",
+      "filename": "FORM-37_Order-Requiring-Production-in-Court-of-Person-in-Prison-for-Answering-to-Charge-of-Offence.pdf",
+      "section_references": [
+        "302"
+      ],
+      "page_start": 228,
+      "page_end": 228,
+      "page_count": 1,
+      "byte_size": 517786,
+      "sha256": "607b55316a71fef204480d2c25ada386a7dabe4ac42ebc1255cd94fd7deabd26",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 37]"
+    },
+    {
+      "form_number": 38,
+      "form_id": "BNSS_FORM_38",
+      "title": "ORDER REQUIRING PRODUCTION IN COURT OF PERSON IN PRISON FOR GIVING EVIDENCE",
+      "slug": "Order-Requiring-Production-in-Court-of-Person-in-Prison-for-Giving-Evidence",
+      "filename": "FORM-38_Order-Requiring-Production-in-Court-of-Person-in-Prison-for-Giving-Evidence.pdf",
+      "section_references": [
+        "302"
+      ],
+      "page_start": 229,
+      "page_end": 229,
+      "page_count": 1,
+      "byte_size": 517530,
+      "sha256": "77afd15497a9ad5fd16f104a24ff12e0322f7dfae71e61fde56a011f21cfb5da",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 38]"
+    },
+    {
+      "form_number": 39,
+      "form_id": "BNSS_FORM_39",
+      "title": "WARRANT OF COMMITMENT IN CERTAIN CASES OF CONTEMPT WHEN A FINE IS IMPOSED",
+      "slug": "Warrant-of-Commitment-in-Certain-Cases-of-Contempt-When-a-Fine-Is-Imposed",
+      "filename": "FORM-39_Warrant-of-Commitment-in-Certain-Cases-of-Contempt-When-a-Fine-Is-Imposed.pdf",
+      "section_references": [
+        "384"
+      ],
+      "page_start": 230,
+      "page_end": 230,
+      "page_count": 1,
+      "byte_size": 517837,
+      "sha256": "a6213fae3c27ee35cdd32db48c795cedff2269aaf9feb77c09a0bd2d41a01b73",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 39]"
+    },
+    {
+      "form_number": 40,
+      "form_id": "BNSS_FORM_40",
+      "title": "MAGISTRA TE'S OR JUDGE'S WARRANT OF COMMITMENT OF WITNESS REFUSING TO ANSWER OR TO PRODUCE DOCUMENT",
+      "slug": "Magistra-Tes-or-Judges-Warrant-of-Commitment-of-Witness-Refusing-to-Answer-or-to-Produce-Document",
+      "filename": "FORM-40_Magistra-Tes-or-Judges-Warrant-of-Commitment-of-Witness-Refusing-to-Answer-or-to-Produce-Document.pdf",
+      "section_references": [
+        "388"
+      ],
+      "page_start": 231,
+      "page_end": 231,
+      "page_count": 1,
+      "byte_size": 517751,
+      "sha256": "ae2377155199068aa12da6f6c14b7247cf4355665a4df971629bc4ede430f6e4",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 40]"
+    },
+    {
+      "form_number": 41,
+      "form_id": "BNSS_FORM_41",
+      "title": "WARRANT OF COMMITMENT UNDER SENTENCE OF DEATH",
+      "slug": "Warrant-of-Commitment-under-Sentence-of-Death",
+      "filename": "FORM-41_Warrant-of-Commitment-under-Sentence-of-Death.pdf",
+      "section_references": [
+        "407"
+      ],
+      "page_start": 232,
+      "page_end": 232,
+      "page_count": 1,
+      "byte_size": 517628,
+      "sha256": "9c3908ce78e38ecb5e71b031d338c6a375f98a5e440a0c94e661eeca5b0f5106",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 41]"
+    },
+    {
+      "form_number": 42,
+      "form_id": "BNSS_FORM_42",
+      "title": "WARRANT AFTER A COMMUTA TION OF A SENTENCE",
+      "slug": "Warrant-after-a-Commuta-Tion-of-a-Sentence",
+      "filename": "FORM-42_Warrant-after-a-Commuta-Tion-of-a-Sentence.pdf",
+      "section_references": [
+        "427",
+        "453",
+        "456"
+      ],
+      "page_start": 233,
+      "page_end": 233,
+      "page_count": 1,
+      "byte_size": 517588,
+      "sha256": "0469865bb9bcce2913833358eccdfaeb47f846db28056656c451d6760b86ea64",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 42]"
+    },
+    {
+      "form_number": 43,
+      "form_id": "BNSS_FORM_43",
+      "title": "WARRANT OF EXECUTION OF A SENTENCE OF DEATH",
+      "slug": "Warrant-of-Execution-of-a-Sentence-of-Death",
+      "filename": "FORM-43_Warrant-of-Execution-of-a-Sentence-of-Death.pdf",
+      "section_references": [
+        "453",
+        "454"
+      ],
+      "page_start": 234,
+      "page_end": 234,
+      "page_count": 1,
+      "byte_size": 517567,
+      "sha256": "5ad8f97c104d2c63c4501152b26cdd97d7e2a91737680983191b2102ed14beb9",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 43]"
+    },
+    {
+      "form_number": 44,
+      "form_id": "BNSS_FORM_44",
+      "title": "WARRANT TO LEVY A FINE BY ATTACHMENT AND SALE",
+      "slug": "Warrant-to-Levy-a-Fine-by-Attachment-and-Sale",
+      "filename": "FORM-44_Warrant-to-Levy-a-Fine-by-Attachment-and-Sale.pdf",
+      "section_references": [
+        "461"
+      ],
+      "page_start": 235,
+      "page_end": 235,
+      "page_count": 1,
+      "byte_size": 518073,
+      "sha256": "5af5b830adc270e7d5084414eea127eedc5777b9a492941962eb9172c4de0c7f",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 44]"
+    },
+    {
+      "form_number": 45,
+      "form_id": "BNSS_FORM_45",
+      "title": "WARRANT FOR RECOVERY OF FINE",
+      "slug": "Warrant-for-Recovery-of-Fine",
+      "filename": "FORM-45_Warrant-for-Recovery-of-Fine.pdf",
+      "section_references": [
+        "461"
+      ],
+      "page_start": 236,
+      "page_end": 236,
+      "page_count": 1,
+      "byte_size": 517486,
+      "sha256": "180ee9ae303f25e45ca91362b5db8451d69b1dd9b66b4c9884b443cd4746aff0",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 45]"
+    },
+    {
+      "form_number": 46,
+      "form_id": "BNSS_FORM_46",
+      "title": "BOND FOR APPEARANCE OF OFFENDER RELEASED PENDING REALISA TION OF FINE",
+      "slug": "Bond-for-Appearance-of-Offender-Released-Pending-Realisa-Tion-of-Fine",
+      "filename": "FORM-46_Bond-for-Appearance-of-Offender-Released-Pending-Realisa-Tion-of-Fine.pdf",
+      "section_references": [
+        "464(1)(b)"
+      ],
+      "page_start": 237,
+      "page_end": 237,
+      "page_count": 1,
+      "byte_size": 517516,
+      "sha256": "589bb9047b334eb44d5e0bac946f2b03b2c7284928a39e90f021cb2b05c21b74",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 46]"
+    },
+    {
+      "form_number": 47,
+      "form_id": "BNSS_FORM_47",
+      "title": "BOND AND BAIL-BOND FOR ATTENDANCE BEFORE OFFICER IN CHARGE OF POLICE STA TION OR COURT",
+      "slug": "Bond-and-Bail-Bond-for-Attendance-before-Officer-in-Charge-of-Police-Sta-Tion-or-Court",
+      "filename": "FORM-47_Bond-and-Bail-Bond-for-Attendance-before-Officer-in-Charge-of-Police-Sta-Tion-or-Court.pdf",
+      "section_references": [
+        "478",
+        "479",
+        "480",
+        "481",
+        "482(3)",
+        "485"
+      ],
+      "page_start": 238,
+      "page_end": 238,
+      "page_count": 1,
+      "byte_size": 518002,
+      "sha256": "64325ac896917ca49872cd41ff69a95acb450c6ffb3047ee9a17df336a5c1d5a",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 47]"
+    },
+    {
+      "form_number": 48,
+      "form_id": "BNSS_FORM_48",
+      "title": "WARRANT TO DISCHARGE A PERSON IMPRISONED ON FAILURE TO GIVE SECURITY",
+      "slug": "Warrant-to-Discharge-a-Person-Imprisoned-on-Failure-to-Give-Security",
+      "filename": "FORM-48_Warrant-to-Discharge-a-Person-Imprisoned-on-Failure-to-Give-Security.pdf",
+      "section_references": [
+        "487"
+      ],
+      "page_start": 239,
+      "page_end": 239,
+      "page_count": 1,
+      "byte_size": 517255,
+      "sha256": "63a725dd656ed44b31580aa2812ed788dd02603eb81f4a7ebe02ebf936955298",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 48]"
+    },
+    {
+      "form_number": 49,
+      "form_id": "BNSS_FORM_49",
+      "title": "WARRANT OF A TTACHMENT TO ENFORCE A BOND",
+      "slug": "Warrant-of-a-Ttachment-to-Enforce-a-Bond",
+      "filename": "FORM-49_Warrant-of-a-Ttachment-to-Enforce-a-Bond.pdf",
+      "section_references": [
+        "491"
+      ],
+      "page_start": 240,
+      "page_end": 240,
+      "page_count": 1,
+      "byte_size": 517735,
+      "sha256": "d0cb6ffdc855b4eb9174816a46edd4d1a32ee401bb873708899974d6ccfd88fd",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 49]"
+    },
+    {
+      "form_number": 50,
+      "form_id": "BNSS_FORM_50",
+      "title": "NOTICE TO SURETY ON BREACH OF A BOND",
+      "slug": "Notice-to-Surety-on-Breach-of-a-Bond",
+      "filename": "FORM-50_Notice-to-Surety-on-Breach-of-a-Bond.pdf",
+      "section_references": [
+        "491"
+      ],
+      "page_start": 241,
+      "page_end": 241,
+      "page_count": 1,
+      "byte_size": 517238,
+      "sha256": "a72661c8b5ec0723cb090d21a2bffc514d27f686c604ce21e14f0f726981ca8c",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 50]"
+    },
+    {
+      "form_number": 51,
+      "form_id": "BNSS_FORM_51",
+      "title": "NOTICE TO SURETY OF FORFEITURE OF BOND FOR GOOD BEHA VIOUR",
+      "slug": "Notice-to-Surety-of-Forfeiture-of-Bond-for-Good-Beha-Viour",
+      "filename": "FORM-51_Notice-to-Surety-of-Forfeiture-of-Bond-for-Good-Beha-Viour.pdf",
+      "section_references": [
+        "491"
+      ],
+      "page_start": 242,
+      "page_end": 242,
+      "page_count": 1,
+      "byte_size": 517571,
+      "sha256": "1015cd32beba083930d3cafc093d214255d13080ae724d01c844b13f69c43aba",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 51]"
+    },
+    {
+      "form_number": 52,
+      "form_id": "BNSS_FORM_52",
+      "title": "WARRANT OF A TTACHMENT AGAINST A SURETY",
+      "slug": "Warrant-of-a-Ttachment-Against-a-Surety",
+      "filename": "FORM-52_Warrant-of-a-Ttachment-Against-a-Surety.pdf",
+      "section_references": [
+        "491"
+      ],
+      "page_start": 243,
+      "page_end": 243,
+      "page_count": 1,
+      "byte_size": 517324,
+      "sha256": "0de425b8fcf0fca78623d4529694c5d95bb4f15cc0ff030a0618a3a77137087a",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 52]"
+    },
+    {
+      "form_number": 53,
+      "form_id": "BNSS_FORM_53",
+      "title": "WARRANT OF COMMITMENT OF THE SURETY OF AN ACCUSED PERSON ADMITTED TO BAIL",
+      "slug": "Warrant-of-Commitment-of-the-Surety-of-an-Accused-Person-Admitted-to-Bail",
+      "filename": "FORM-53_Warrant-of-Commitment-of-the-Surety-of-an-Accused-Person-Admitted-to-Bail.pdf",
+      "section_references": [
+        "491"
+      ],
+      "page_start": 244,
+      "page_end": 244,
+      "page_count": 1,
+      "byte_size": 517903,
+      "sha256": "f4b80cb10b0e20fd6fbd4938a602ffcb6047ae69110595f606adadf3acf36318",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 53]"
+    },
+    {
+      "form_number": 54,
+      "form_id": "BNSS_FORM_54",
+      "title": "NOTICE TO THE PRINCIPAL OF FORFEITURE OF BOND TO KEEP THE PEACE",
+      "slug": "Notice-to-the-Principal-of-Forfeiture-of-Bond-to-Keep-the-Peace",
+      "filename": "FORM-54_Notice-to-the-Principal-of-Forfeiture-of-Bond-to-Keep-the-Peace.pdf",
+      "section_references": [
+        "491"
+      ],
+      "page_start": 245,
+      "page_end": 245,
+      "page_count": 1,
+      "byte_size": 517146,
+      "sha256": "14791fdf5cc1c1beb83a77a4eb0e8850f2c176fc75fc61d402ce98d67eb8452d",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 54]"
+    },
+    {
+      "form_number": 55,
+      "form_id": "BNSS_FORM_55",
+      "title": "WARRANT TO A TTACH THE PROPERTY OF THE PRINCIPAL ON BREACH OF A BOND TO KEEP THE PEACE",
+      "slug": "Warrant-to-a-Ttach-the-Property-of-the-Principal-on-Breach-of-a-Bond-to-Keep-the-Peace",
+      "filename": "FORM-55_Warrant-to-a-Ttach-the-Property-of-the-Principal-on-Breach-of-a-Bond-to-Keep-the-Peace.pdf",
+      "section_references": [
+        "491"
+      ],
+      "page_start": 246,
+      "page_end": 246,
+      "page_count": 1,
+      "byte_size": 517940,
+      "sha256": "8b33f16fcd5a9661cb7756009c551235aff26910ed615941ae044bb1e4ed7b16",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 55]"
+    },
+    {
+      "form_number": 56,
+      "form_id": "BNSS_FORM_56",
+      "title": "WARRANT OF IMPRISONMENT ON BREACH OF A BOND TO KEEP THE PEACE",
+      "slug": "Warrant-of-Imprisonment-on-Breach-of-a-Bond-to-Keep-the-Peace",
+      "filename": "FORM-56_Warrant-of-Imprisonment-on-Breach-of-a-Bond-to-Keep-the-Peace.pdf",
+      "section_references": [
+        "491"
+      ],
+      "page_start": 247,
+      "page_end": 247,
+      "page_count": 1,
+      "byte_size": 517590,
+      "sha256": "1fd08eadcd798bbe1ef174dc8bb0c744ecffc556d903c2ac81376448c13b8ffd",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 56]"
+    },
+    {
+      "form_number": 57,
+      "form_id": "BNSS_FORM_57",
+      "title": "WARRANT OF A TTACHMENT AND SALE ON FORFEITURE OF BOND FOR GOOD BEHA VIOUR",
+      "slug": "Warrant-of-a-Ttachment-and-Sale-on-Forfeiture-of-Bond-for-Good-Beha-Viour",
+      "filename": "FORM-57_Warrant-of-a-Ttachment-and-Sale-on-Forfeiture-of-Bond-for-Good-Beha-Viour.pdf",
+      "section_references": [
+        "491"
+      ],
+      "page_start": 248,
+      "page_end": 249,
+      "page_count": 2,
+      "byte_size": 722688,
+      "sha256": "c22421d8eb2755025adc81daa8f8b5914a13231b5e6bd1934c5f48d25dd87028",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 57]"
+    },
+    {
+      "form_number": 58,
+      "form_id": "BNSS_FORM_58",
+      "title": "WARRANT OF IMPRISONMENT ON FORFEITURE OF BOND FOR GOOD BEHAVIOUR",
+      "slug": "Warrant-of-Imprisonment-on-Forfeiture-of-Bond-for-Good-Behaviour",
+      "filename": "FORM-58_Warrant-of-Imprisonment-on-Forfeiture-of-Bond-for-Good-Behaviour.pdf",
+      "section_references": [
+        "491"
+      ],
+      "page_start": 249,
+      "page_end": 249,
+      "page_count": 1,
+      "byte_size": 205457,
+      "sha256": "b86c808505bd0b9eefc206251f29b57ee6c2d6f260b14e2d87efca7e4b8eafe6",
+      "extraction_confidence": 1.0,
+      "needs_review": false,
+      "provenance": "[BNSS Second Schedule, Form 58]"
+    }
+  ]
+}

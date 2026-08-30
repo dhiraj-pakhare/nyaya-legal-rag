@@ -10,7 +10,8 @@
 BNS bare act 2023.pdf
 DhronAI-Technical-Assignment.pdf
 data/raw/
-data/forms/
+data/forms/*
+!data/forms/forms_manifest.json
 
 # Local Vector Storage & Databases
 qdrant_storage/

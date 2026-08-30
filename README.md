@@ -8,16 +8,18 @@ The system features coordinate-aware Gazette PDF parsing, hierarchical statutory
 
 ## Current Implementation Status
 
-| Phase | Description | Status |
+| Phase / Part | Description | Status |
 | :--- | :--- | :--- |
 | **Phase 1** | **PDF Inspection & Structure-Aware Statutory Parser** | :white_check_mark: **Complete & Validated** |
 | **Phase 2** | **Statutory Chunking + BGE Embeddings + Qdrant Indexing** | :white_check_mark: **Complete & Validated** |
 | **Phase 3** | **BM25 Keyword Retrieval + RRF + Exact Section Intent Routing** | :white_check_mark: **Complete & Validated** |
 | **Phase 4** | **Cross-Encoder Reranking + Multi-Factor Confidence + Refusal Engine** | :white_check_mark: **Complete & Validated** |
-| **Phase 5** | Citation-Guarded LLM Generation & Safety | *Planned* |
-| **Phase 6** | Statutory Forms Pipeline (58 Forms) | *Planned* |
-| **Phase 7** | FastAPI Backend & Interactive UI | *Planned* |
-| **Phase 8** | Dockerization & Production Deployment | *Planned* |
+| **Phase 5** | **Citation-Guarded LLM Generation & Safety (AST Verification)** | :white_check_mark: **Complete & Validated** |
+| **Phase 6** | **Multi-Tenant User Document RAG & Privacy Isolation** | :white_check_mark: **Complete & Validated** |
+| **Phase 7** | **Statutory Forms Second Schedule Parser (58 Forms)** | :white_check_mark: **Complete & Validated** |
+| **Phase 8** | **FastAPI Gateway + Hardened Security + SSE Streaming** | :white_check_mark: **Complete & Validated** |
+| **Part B** | **Statutory Forms PDF Exporter + Manifest + Download & ZIP API** | :white_check_mark: **Complete & Validated** |
+
 
 ---
 
@@ -89,6 +91,9 @@ cp .env.example .env
 
 # 5. Ingest PDF and index corpus into Qdrant
 python3 scripts/ingest.py
+
+# 6. Extract all 58 statutory forms into discrete PDFs and manifest
+python3 scripts/extract_forms.py
 ```
 
 ---
@@ -96,7 +101,7 @@ python3 scripts/ingest.py
 ## Running Verification & Benchmarks
 
 ```bash
-# Run complete test suite (75 tests passing)
+# Run complete test suite (224 tests passing, 100% green)
 python3 -m pytest backend/tests/ -v
 
 # Run confidence threshold calibration sweep
@@ -105,6 +110,7 @@ python3 scripts/calibrate_threshold.py
 # Run comprehensive 5-configuration retrieval & reranking benchmark
 python3 scripts/benchmark_reranking.py
 ```
+
 
 ---
 
