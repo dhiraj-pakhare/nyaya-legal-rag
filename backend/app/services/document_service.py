@@ -1,9 +1,10 @@
-"""User Document Application Service (Phase 8).
+"""User Document Application Service (Part D & Phase 8).
 
-Coordinates synchronous PDF upload, file security validation, temporary file lifecycle,
-scoped multi-tenant listing, retrieval, and deletion with anti-enumeration protection.
+Coordinates asynchronous PDF upload, background worker dispatch, job status tracking,
+scoped multi-tenant document lifecycle, retrieval, and deletion with anti-enumeration protection.
 """
 
+from datetime import datetime, timezone
 import logging
 from typing import Any, Dict, List, Optional
 from fastapi import UploadFile
@@ -18,11 +19,14 @@ from backend.app.api.schemas.documents import (
     DocumentDetailDTO,
     DocumentIngestResponseDTO,
     DocumentListItemDTO,
+    DocumentStatusDTO,
+    DocumentUploadResponseDTO,
 )
 from backend.app.core.config import settings
 from backend.app.document_rag.models import (
     CorruptPDFError,
     DocumentNotFoundError as DomainDocumentNotFoundError,
+    IngestionStatus,
     OversizedDocumentError,
     UserDocumentSessionScope,
 )
@@ -35,6 +39,8 @@ from backend.app.document_rag.repository import (
     get_user_doc_repository,
 )
 from backend.app.document_rag.security import sanitize_filename, sanitize_for_logs
+from backend.app.workers.ingestion_worker import AsyncIngestionWorker, get_async_worker
+from backend.app.workers.job_manager import IngestionJobManager, get_job_manager
 
 logger = logging.getLogger("nyaya.services.documents")
 
@@ -45,17 +51,24 @@ class DocumentManagementService:
     def __init__(
         self,
         rag_pipeline: Optional[UserDocumentRAGPipeline] = None,
-        repository: Optional[UserDocumentRepository] = None
+        repository: Optional[UserDocumentRepository] = None,
+        async_worker: Optional[AsyncIngestionWorker] = None,
+        job_manager: Optional[IngestionJobManager] = None
     ):
         self.pipeline = rag_pipeline or get_user_doc_rag_pipeline()
         self.repository = repository or get_user_doc_repository()
+        self.job_manager = job_manager or get_job_manager()
+        self.async_worker = async_worker or AsyncIngestionWorker(
+            rag_pipeline=self.pipeline,
+            job_manager=self.job_manager
+        )
 
     async def upload_and_ingest(
         self,
         scope: UserDocumentSessionScope,
         file: UploadFile
-    ) -> DocumentIngestResponseDTO:
-        """Validate, stage, and synchronously ingest user PDF into isolated vector/BM25 storage."""
+    ) -> DocumentUploadResponseDTO:
+        """Validate upload and submit document for asynchronous background ingestion."""
         # 1. Filename sanitization
         original_filename = file.filename or "uploaded_document.pdf"
         safe_filename = sanitize_filename(original_filename)
@@ -81,29 +94,28 @@ class DocumentManagementService:
             raise UnsupportedMediaTypeError("Uploaded file does not contain valid PDF header magic bytes (%PDF-).")
 
         try:
-            # 5. Synchronous Ingestion Execution
-            ingest_res = self.pipeline.ingest_pdf(
+            # 5. Submit job to background ingestion worker without blocking
+            job = self.async_worker.submit_ingestion_job(
                 file_bytes=content,
                 filename=safe_filename,
                 scope=scope
             )
 
-            doc = ingest_res.document
             user_log_hash = sanitize_for_logs({"user_id": scope.user_id}).get("user_id_hash", "anon")
             logger.info(
-                f"Document successfully ingested for user={user_log_hash}: "
-                f"doc_id={doc.document_id}, pages={doc.page_count}, chunks={ingest_res.chunks_count}"
+                f"Async document upload job '{job.job_id}' created for user={user_log_hash}: "
+                f"doc_id={job.document_id}, status={job.status.value}"
             )
 
-            return DocumentIngestResponseDTO(
-                document_id=doc.document_id,
-                filename=doc.filename,
-                status=doc.status.value,
-                page_count=doc.page_count,
-                chunk_count=ingest_res.chunks_count,
-                file_size_bytes=doc.file_size_bytes,
-                created_at=doc.uploaded_at.isoformat(),
-                message="Document successfully ingested and indexed."
+            return DocumentUploadResponseDTO(
+                job_id=job.job_id,
+                document_id=job.document_id,
+                filename=job.filename,
+                status=job.status.value,
+                progress=job.progress,
+                stage=job.stage,
+                created_at=job.created_at.isoformat(),
+                message="Document upload accepted for asynchronous processing."
             )
 
         except CorruptPDFError as e:
@@ -113,8 +125,55 @@ class DocumentManagementService:
             logger.warning(f"Oversized document: {str(e)}")
             raise PayloadTooLargeError(str(e))
         except Exception as e:
-            logger.warning(f"Document ingestion failed: {str(e)}")
+            logger.warning(f"Document upload dispatch failed: {str(e)}")
             raise APIError(message=f"Document ingestion failed: {str(e)}", code="INGESTION_FAILED", status_code=422)
+
+    def get_document_status(
+        self,
+        scope: UserDocumentSessionScope,
+        document_id_or_job_id: str
+    ) -> DocumentStatusDTO:
+        """Get ingestion status and progress for a document/job. Enforces uniform 404 anti-enumeration."""
+        scope.validate_scope()
+        target = document_id_or_job_id.strip()
+
+        # 1. Try finding job by job_id
+        job = self.job_manager.get_job(target, scope)
+        if not job:
+            # 2. Try finding job by document_id
+            job = self.job_manager.get_job_by_document(target, scope)
+
+        if job:
+            return DocumentStatusDTO(
+                job_id=job.job_id,
+                document_id=job.document_id,
+                status=job.status.value,
+                progress=job.progress,
+                stage=job.stage,
+                error=job.error,
+                page_count=job.page_count,
+                chunk_count=job.chunk_count,
+                updated_at=job.updated_at.isoformat()
+            )
+
+        # 3. Fallback: check document registry in repository
+        try:
+            doc = self.repository.get_document(target, scope)
+            progress_val = 100 if doc.status == IngestionStatus.READY else (0 if doc.status == IngestionStatus.FAILED else 50)
+            stage_val = "complete" if doc.status == IngestionStatus.READY else ("failed" if doc.status == IngestionStatus.FAILED else "processing")
+            return DocumentStatusDTO(
+                job_id=f"job_{doc.document_id[:12]}",
+                document_id=doc.document_id,
+                status=doc.status.value,
+                progress=progress_val,
+                stage=stage_val,
+                error=doc.error_message,
+                page_count=doc.page_count,
+                chunk_count=doc.indexed_chunks_count,
+                updated_at=doc.uploaded_at.isoformat()
+            )
+        except DomainDocumentNotFoundError:
+            raise APIDocumentNotFoundError()
 
     def list_documents(self, scope: UserDocumentSessionScope) -> List[DocumentListItemDTO]:
         """List all documents owned by the authenticated principal."""

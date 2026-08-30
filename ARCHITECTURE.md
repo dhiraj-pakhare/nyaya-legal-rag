@@ -342,11 +342,9 @@ graph TD
 6. **`DeterministicFormRenderer`**: Generates publication-grade Markdown and plain-text output directly from typed form models with zero LLM dependency.
 7. **`FormCitationValidator`**: AST citation validator verifying canonical citation tags `[BNSS Second Schedule, Form X]`, confirming form existence ($1 \le X \le 58$) and context retrieval grounding.
 
----
+## 10. API Gateway & Asynchronous Document Ingestion Architecture (Phase 8 & Part D)
 
-## 10. API & Application Gateway Architecture (Phase 8 & Part B)
-
-Phase 8 exposes the full spectrum of statutory retrieval, grounded reasoning, multi-tenant document isolation, and statutory form extraction capabilities via a hardened **FastAPI REST & SSE Gateway**.
+Phase 8 exposes the full spectrum of statutory retrieval, grounded reasoning, multi-tenant document isolation, statutory form extraction, and Part D **Asynchronous Background Document Ingestion** via a hardened **FastAPI REST & SSE Gateway**.
 
 ```mermaid
 graph TD
@@ -359,41 +357,41 @@ graph TD
         Principal --> Scope["Immutable UserDocumentSessionScope"]
     end
     
-    subgraph Application Service Layer
+    subgraph Application & Worker Layer
         Scope --> QService["LegalQueryService"]
         Scope --> DService["DocumentManagementService"]
-        Scope --> FService["StatutoryFormsService"]
-        Scope --> DiagService["DiagnosticsService"]
+        DService -->|Submit Job| Worker["AsyncIngestionWorker<br>(ThreadPoolExecutor)"]
+        Worker --> JobStore["IngestionJobManager<br>(Thread-Safe State Machine)"]
     end
     
-    subgraph Domain Engine Pipelines
-        QService --> StatPipe["StatutoryGenerationPipeline (Phase 5)"]
-        QService --> DocPipe["UserDocumentRAGPipeline (Phase 6)"]
-        QService --> FormPipe["StatutoryFormPipeline (Phase 7)"]
-        DService --> DocRepo["UserDocumentRepository (Multi-Tenant Qdrant/BM25)"]
-        FService --> FormReg["StatutoryFormRegistry (Forms 1-58)"]
-        FService --> FormExport["StatutoryFormExporter (PDFs & ZIP)"]
-        DiagService --> ReadyProbe["Readiness Diagnostics Probe"]
+    subgraph Background Execution Pipeline
+        Worker -->|1. Parse & OCR| Extractor["UserPDFExtractor"]
+        Worker -->|2. Chunk| Chunker["UserDocumentChunker"]
+        Worker -->|3. Embed| Embedder["EmbeddingModel (bge-base-en-v1.5)"]
+        Worker -->|4. Index| DocRepo["UserDocumentRepository (Qdrant + BM25)"]
+        Worker -->|5. Register| Registry["UserDocumentRegistry (Status: READY)"]
     end
     
-    subgraph Response Contracts
-        StatPipe & DocPipe & FormPipe --> DTO["Polymorphic Response DTOs<br>(STATUTORY / DOCUMENT / FORM Citations)"]
-        DTO --> Streamer["Safe SSE Streamer<br>(Pre-Emission AST Claim Verification)"]
+    subgraph Core Endpoints
+        DService --> UploadEP["POST /api/v1/documents/upload<br>(Returns 201 Created immediately with job_id)"]
+        DService --> StatusEP["GET /api/v1/documents/{id}/status<br>(Polls QUEUED -> PROCESSING -> READY/FAILED)"]
     end
 ```
 
 ### Core Endpoints
 1. **`POST /api/v1/query`**: Unified grounded query execution across Statutory, User Document, Combined, or Statutory Form engines with AST citation verification.
 2. **`POST /api/v1/query/stream`**: Server-Sent Events (SSE) safe streaming with buffered pre-emission AST verification (no unvalidated legal claims streamed).
-3. **`POST /api/v1/documents`**: Multipart PDF upload ($\le 25\text{MB}$, magic-byte header validation, isolated multi-tenant chunking, embedding, and synchronous indexing).
-4. **`GET /api/v1/documents`**: Scoped document listing for authenticated principal.
-5. **`GET /api/v1/documents/{document_id}`**: Scoped document metadata retrieval (uniform 404 anti-enumeration on missing/unowned documents).
-6. **`DELETE /api/v1/documents/{document_id}`**: Scoped document purging from vectors and BM25 index (uniform 404).
-7. **`GET /api/v1/forms`**: List all 58 statutory forms with scraped titles, sections, page ranges, byte sizes, SHA-256 hashes, confidence scores, and download URLs.
-8. **`GET /api/v1/forms/search?q=<query>`**: Deterministic query parameter search for statutory forms.
-9. **`POST /api/v1/forms/lookup`**: Sub-millisecond deterministic form lookup by number, section, title, or fuzzy query (POST).
-10. **`GET /api/v1/forms/{id_or_number}/download`**: Download individual form as a vector/text PDF file.
-11. **`GET /api/v1/forms/download-all`**: Bulk download all 58 statutory form PDFs as a single ZIP archive.
-12. **`GET /api/v1/forms/{id_or_number}`**: Direct Second Schedule statutory form JSON metadata retrieval.
-13. **`GET /api/v1/health`**: Lightweight process liveness probe ($< 1\text{ms}$).
-14. **`GET /api/v1/ready`**: Deep dependency readiness diagnostic probe inspecting Qdrant, embeddings, forms registry, and LLM configuration.
+3. **`POST /api/v1/documents/upload`** (and **`POST /api/v1/documents`**): Non-blocking asynchronous PDF upload ($\le 25\text{MB}$, magic-byte header validation, returns HTTP 201 Created immediately with `job_id`, `document_id`, `status="QUEUED"`).
+4. **`GET /api/v1/documents/{document_id}/status`**: Status polling probe returning `job_id`, `status` (`QUEUED` $\rightarrow$ `PROCESSING` $\rightarrow$ `READY` / `FAILED`), `progress` (0–100%), `stage`, and safe error message. Enforces uniform 404 anti-enumeration.
+5. **`GET /api/v1/documents`**: Scoped document listing for authenticated principal.
+6. **`GET /api/v1/documents/{document_id}`**: Scoped document metadata retrieval (uniform 404 anti-enumeration on missing/unowned documents).
+7. **`DELETE /api/v1/documents/{document_id}`**: Scoped document purging from vectors and BM25 index (uniform 404).
+8. **`GET /api/v1/forms`**: List all 58 statutory forms with scraped titles, sections, page ranges, byte sizes, SHA-256 hashes, confidence scores, and download URLs.
+9. **`GET /api/v1/forms/search?q=<query>`**: Deterministic query parameter search for statutory forms.
+10. **`POST /api/v1/forms/lookup`**: Sub-millisecond deterministic form lookup by number, section, title, or fuzzy query (POST).
+11. **`GET /api/v1/forms/{id_or_number}/download`**: Download individual form as a vector/text PDF file.
+12. **`GET /api/v1/forms/download-all`**: Bulk download all 58 statutory form PDFs as a single ZIP archive.
+13. **`GET /api/v1/forms/{id_or_number}`**: Direct Second Schedule statutory form JSON metadata retrieval.
+14. **`GET /api/v1/health`**: Lightweight process liveness probe ($< 1\text{ms}$).
+15. **`GET /api/v1/ready`**: Deep dependency readiness diagnostic probe inspecting Qdrant, embeddings, forms registry, and LLM configuration.
+

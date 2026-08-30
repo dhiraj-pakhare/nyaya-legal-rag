@@ -24,7 +24,8 @@ def client(monkeypatch):
 
 
 def test_document_upload_success_synchronous(client):
-    """Test valid PDF upload returns 201 Created with immediate consistency."""
+    """Test valid PDF upload returns 201 Created with job_id and async status."""
+    import time
     pdf_bytes = create_test_pdf_bytes(["Notice under Section 35 of Bharatiya Nagarik Suraksha Sanhita."])
     files = {"file": ("test_notice.pdf", pdf_bytes, "application/pdf")}
     headers = {"X-User-ID": "user_doc_test_1"}
@@ -32,11 +33,24 @@ def test_document_upload_success_synchronous(client):
     resp = client.post("/api/v1/documents", files=files, headers=headers)
     assert resp.status_code == 201
     data = resp.json()
-    assert data["status"] == "READY"
+    assert data["status"] in ("QUEUED", "PROCESSING", "READY")
+    assert "job_id" in data
     assert "document_id" in data
     assert data["filename"] == "test_notice.pdf"
 
     doc_id = data["document_id"]
+
+    # Poll status endpoint until READY
+    status_data = None
+    for _ in range(50):
+        status_resp = client.get(f"/api/v1/documents/{doc_id}/status", headers=headers)
+        assert status_resp.status_code == 200
+        status_data = status_resp.json()
+        if status_data["status"] == "READY":
+            break
+        time.sleep(0.05)
+
+    assert status_data["status"] == "READY"
 
     # Verify immediate listing consistency
     list_resp = client.get("/api/v1/documents", headers=headers)

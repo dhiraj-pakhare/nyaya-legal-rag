@@ -1,4 +1,4 @@
-"""User Document Lifecycle Management API Routes (Phase 8)."""
+"""User Document Lifecycle Management API Routes (Part D & Phase 8)."""
 
 from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, File, UploadFile, status
@@ -6,8 +6,9 @@ from fastapi import APIRouter, Depends, File, UploadFile, status
 from backend.app.api.deps import get_session_scope
 from backend.app.api.schemas.documents import (
     DocumentDetailDTO,
-    DocumentIngestResponseDTO,
     DocumentListItemDTO,
+    DocumentStatusDTO,
+    DocumentUploadResponseDTO,
 )
 from backend.app.document_rag.models import UserDocumentSessionScope
 from backend.app.services.document_service import (
@@ -19,18 +20,39 @@ router = APIRouter(prefix="/documents", tags=["User Documents"])
 
 
 @router.post(
-    "",
-    response_model=DocumentIngestResponseDTO,
+    "/upload",
+    response_model=DocumentUploadResponseDTO,
     status_code=status.HTTP_201_CREATED,
-    summary="Upload and Ingest User PDF Document",
-    description="Synchronously validates, chunks, embeds, and indexes an uploaded PDF document into tenant-isolated storage."
+    summary="Asynchronous User PDF Upload",
+    description="Submits an uploaded PDF document for asynchronous background extraction, chunking, embedding, and vector indexing."
+)
+@router.post(
+    "",
+    response_model=DocumentUploadResponseDTO,
+    status_code=status.HTTP_201_CREATED,
+    summary="Asynchronous User PDF Upload (Alias)",
+    description="Submits an uploaded PDF document for asynchronous background extraction, chunking, embedding, and vector indexing."
 )
 async def upload_document(
     file: UploadFile = File(...),
     scope: UserDocumentSessionScope = Depends(get_session_scope),
     service: DocumentManagementService = Depends(get_document_service)
-) -> DocumentIngestResponseDTO:
+) -> DocumentUploadResponseDTO:
     return await service.upload_and_ingest(scope=scope, file=file)
+
+
+@router.get(
+    "/{document_id}/status",
+    response_model=DocumentStatusDTO,
+    summary="Get Ingestion Job Status",
+    description="Polls async background ingestion job status and progress stage for a document. Enforces uniform 404 on unowned or missing IDs."
+)
+def get_document_status(
+    document_id: str,
+    scope: UserDocumentSessionScope = Depends(get_session_scope),
+    service: DocumentManagementService = Depends(get_document_service)
+) -> DocumentStatusDTO:
+    return service.get_document_status(scope=scope, document_id_or_job_id=document_id)
 
 
 @router.get(

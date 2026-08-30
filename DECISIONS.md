@@ -341,4 +341,26 @@ If raw LLM tokens are streamed directly to the client before citation validation
 ### 5. In-Memory Streaming ZIP Generation
 - `GET /api/v1/forms/download-all` compresses all 58 form PDFs into an in-memory `io.BytesIO()` ZIP stream (`bnss_second_schedule_forms_1_to_58.zip`), ensuring zero leftover temporary zip files on disk and zero path traversal risk.
 
+---
+
+## 14. Part D: Asynchronous Background Document Ingestion & State Machine
+
+### 1. Architectural Rationale for Asynchronous Ingestion
+- **Problem**: Synchronous PDF ingestion requires PDF text/layout parsing, multi-page chunking, dense BGE-base embedding generation ($\sim 100\text{ms}$ per batch), and Qdrant/BM25 indexing, causing HTTP upload timeouts for multi-page documents.
+- **Solution**: Decoupled HTTP upload handler from ingestion execution using an in-process thread pool worker (`AsyncIngestionWorker`) and a thread-safe job state machine (`IngestionJobManager`). Handler returns HTTP 201 Created immediately ($< 15\text{ms}$) with `job_id`, `document_id`, and `status="QUEUED"`.
+
+### 2. State Machine & Lifecycle
+- **States**: `QUEUED` $\rightarrow$ `PROCESSING` $\rightarrow$ `READY` / `FAILED`.
+- **Stages**: `queued` $\rightarrow$ `parsing` $\rightarrow$ `chunking` $\rightarrow$ `embedding` $\rightarrow$ `indexing` $\rightarrow$ `complete` / `failed`.
+- **Unindexed Privacy Isolation**: Documents remain registered in `PROCESSING` status during ingestion and are strictly excluded from hybrid dense/BM25 retrieval until status transitions to `READY`.
+
+### 3. Safe Failure Handling & Stack Trace Protection
+- Worker exceptions capture safe public error descriptions (e.g. `Corrupted or unreadable PDF: ...`) while suppressing internal Python tracebacks, filesystem paths, and database details.
+- Status endpoint `GET /api/v1/documents/{document_id}/status` returns `status="FAILED"`, `progress=0`, and `error="<safe_message>"`.
+
+### 4. Tenant Identity Propagation
+- Immutable `UserDocumentSessionScope` is validated and bound at HTTP upload creation time.
+- The background thread executes strictly under the captured principal identity (`user_id`). Status polling by unowned principals returns uniform `404 Not Found` (`DOCUMENT_NOT_FOUND`).
+
+
 
