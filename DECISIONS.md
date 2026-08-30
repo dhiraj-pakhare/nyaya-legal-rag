@@ -254,3 +254,26 @@ If raw LLM tokens are streamed directly to the client before citation validation
 1. **Natural Language Claim Boundary**: The uncited claim detector relies on deterministic statutory keyword heuristics (`punish`, `imprison`, `fine`, `cogniz`, `bailable`, `warrant`, `arrest`, `custody`, etc.). Complex paraphrasing that avoids all statutory keywords without citations could pass semantic heuristic checks; the primary guard is the requirement of explicit citation tags for all answers.
 2. **Context Window Limits**: Extremely large composite sections spanning $> 8,000$ characters may have lower-ranked auxiliary chunks truncated by the context builder.
 3. **Local LLM Performance**: Smaller local models ($< 7\text{B}$ parameters) may require the 1-time regeneration pass more frequently than larger hosted models to adhere strictly to bracketed citation syntax.
+
+---
+
+## 11. Phase 7: Statutory Forms Second Schedule Extraction & Deterministic Multi-Key Lookup
+
+### 1. Source Discovery & Invariant Enforcement
+- **Source Gazette**: `BNS bare act 2023.pdf` contains all 58 statutory forms in The Second Schedule on Pages 190–249 under Section 522 of the BNSS.
+- **Contiguous Numbering**: Forms are numbered strictly from 1 to 58 (0 missing, 0 duplicate headers).
+- **Multi-Page Continuity**: Form 33 ("CHARGES") spans Pages 222, 223, and 224 across 3 Gazette pages.
+- **Pre-clean Boundaries**: Schedule preamble (`THE SECOND SCHEDULE`, `(See section 522)`) on Page 190 and publication boilerplate on Page 249 are stripped dynamically.
+- **Programmatic Invariants**: `SecondScheduleParser.validate_invariants` asserts that exactly 58 forms exist, numbering is 1..58, Form 1 is on Page 190, Form 58 is on Page 249, Form 33 spans 222–224, and no form text is empty.
+
+### 2. Zero-LLM Deterministic Authoritative Path
+- **Decision**: Do NOT rely on an LLM to discover form numbers, extract fields, or decide if a form exists.
+- **Architecture**: `StatutoryFormRegistry` $\rightarrow$ `DeterministicFormIdentifier` $\rightarrow$ `DeterministicFormRenderer`.
+- **Latency**: Form retrieval executes in $< 1\text{ms}$ in-memory with zero LLM API or GPU token cost.
+
+### 3. Canonical Citations & AST Validation
+- **Canonical Citation**: `[BNSS Second Schedule, Form X]`.
+- **AST Validation**: Rejects non-existent form numbers (e.g. Form 99) and unretrieved forms.
+
+### 4. Multi-Tenant and Corpus Isolation
+- User-uploaded documents can never enter or mutate `StatutoryFormRegistry`.

@@ -308,3 +308,37 @@ graph LR
     C1 & C2 & C3 --> RUN
     RUN --> M1 & M2 & M3 & M4 & M5 & M6 & M7
 ```
+
+---
+
+## 9. Second Schedule Statutory Forms Architecture (Phase 7)
+
+Phase 7 provides authoritative, deterministic extraction and structured modeling of all 58 statutory forms framed under Section 522 of the Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS) located on Pages 190–249 of the Gazette enactment (`BNS bare act 2023.pdf`).
+
+```mermaid
+graph TD
+    Query["User Form Query<br>('Form 1', 'Section 35(3)', 'Attachment warrant')"] --> Router{"Deterministic Form Identifier"}
+    
+    Router -->|Form Number / Section / Exact Title| ExactMatch["Multi-Index Registry Match"]
+    Router -->|Fuzzy / Natural Language| FuzzyMatch["Token-Set Alias Matcher"]
+    
+    ExactMatch & FuzzyMatch --> Registry["StatutoryFormRegistry<br>(58 Pre-Indexed Canonical Forms)"]
+    
+    Registry -->|Match Found| Renderer["Deterministic Markdown / Text Renderer<br>(Zero LLM Cost)"]
+    Registry -->|Multiple Overlaps| Ambiguous["Ambiguity Disambiguation<br>(Return Candidate List)"]
+    Registry -->|Out of Range (Form 99)| Refusal["Clean Refusal<br>(Form Not Found / Inaccessible)"]
+    
+    Renderer --> Output["Verified Form Presentation<br>[BNSS Second Schedule, Form X]"]
+    Renderer -.->|Optional Conversational QA| LLM["Grounded LLM Explainer<br>+ AST Citation Validator"]
+    LLM -.-> Output
+```
+
+### Key Components
+1. **`SecondScheduleParser`**: Dynamically identifies `FORM No. 1` through `FORM No. 58` across pages 190–249 without rigid hardcoded page offsets. Cleans Gazette publication boilerplate and running headers. Parses multi-page forms (Form 33 spanning pages 222–224) seamlessly into typed `StatutoryForm` models.
+2. **Programmatic Invariants**: Enforces that exactly 58 forms exist, numbering is contiguous from 1 to 58, Form 1 starts on page 190, Form 58 is on page 249, Form 33 spans pages 222–224, and no form raw text is empty.
+3. **`StatutoryFormRegistry`**: Thread-safe in-memory registry indexing forms by Form Number, Form ID (`BNSS_FORM_01`), Applicable Statutory Sections (e.g. `35(3)` $\rightarrow$ Form 1, `63` $\rightarrow$ Form 2, `83` $\rightarrow$ Form 4), and Normalized Titles.
+4. **`DeterministicFormIdentifier`**: Zero-LLM sub-millisecond lookup engine resolving numeric, section-based, exact title, and token-set fuzzy queries. Resolves ambiguous queries to structured candidate lists and cleanly refuses non-existent forms (e.g. Form 99).
+5. **`DeterministicFormRenderer`**: Generates publication-grade Markdown and plain-text output directly from typed form models with zero LLM dependency.
+6. **`FormCitationValidator`**: AST citation validator verifying canonical citation tags `[BNSS Second Schedule, Form X]`, confirming form existence ($1 \le X \le 58$) and context retrieval grounding.
+
+
