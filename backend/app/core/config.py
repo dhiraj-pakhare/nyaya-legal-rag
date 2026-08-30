@@ -25,6 +25,19 @@ class Settings(BaseModel):
     reranker_candidate_k: int = int(os.getenv("RERANKER_CANDIDATE_K", "10"))
     reranker_top_k: int = int(os.getenv("RERANKER_TOP_K", "5"))
     confidence_threshold: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.75"))
+    
+    # Phase 5: LLM Generation & Citation Configuration
+    llm_provider: str = os.getenv("LLM_PROVIDER", "ollama")
+    llm_model: str = os.getenv("LLM_MODEL", "llama3.2")
+    llm_base_url: str = os.getenv("LLM_BASE_URL", "http://localhost:11434")
+    llm_api_key: str = os.getenv("LLM_API_KEY", "")
+    llm_temperature: float = float(os.getenv("LLM_TEMPERATURE", "0.0"))
+    llm_max_tokens: int = int(os.getenv("LLM_MAX_TOKENS", "1024"))
+    llm_timeout: float = float(os.getenv("LLM_TIMEOUT", "30.0"))
+    llm_max_retries: int = int(os.getenv("LLM_MAX_RETRIES", "2"))
+    llm_max_context_chars: int = int(os.getenv("LLM_MAX_CONTEXT_CHARS", "8000"))
+    llm_cost_per_1k_input_tokens: float = float(os.getenv("LLM_COST_PER_1K_INPUT_TOKENS", "0.0"))
+    llm_cost_per_1k_output_tokens: float = float(os.getenv("LLM_COST_PER_1K_OUTPUT_TOKENS", "0.0"))
 
 
 settings = Settings()
