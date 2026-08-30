@@ -338,7 +338,53 @@ graph TD
 2. **Programmatic Invariants**: Enforces that exactly 58 forms exist, numbering is contiguous from 1 to 58, Form 1 starts on page 190, Form 58 is on page 249, Form 33 spans pages 222–224, and no form raw text is empty.
 3. **`StatutoryFormRegistry`**: Thread-safe in-memory registry indexing forms by Form Number, Form ID (`BNSS_FORM_01`), Applicable Statutory Sections (e.g. `35(3)` $\rightarrow$ Form 1, `63` $\rightarrow$ Form 2, `83` $\rightarrow$ Form 4), and Normalized Titles.
 4. **`DeterministicFormIdentifier`**: Zero-LLM sub-millisecond lookup engine resolving numeric, section-based, exact title, and token-set fuzzy queries. Resolves ambiguous queries to structured candidate lists and cleanly refuses non-existent forms (e.g. Form 99).
-5. **`DeterministicFormRenderer`**: Generates publication-grade Markdown and plain-text output directly from typed form models with zero LLM dependency.
-6. **`FormCitationValidator`**: AST citation validator verifying canonical citation tags `[BNSS Second Schedule, Form X]`, confirming form existence ($1 \le X \le 58$) and context retrieval grounding.
+---
 
+## 10. API & Application Gateway Architecture (Phase 8)
 
+Phase 8 exposes the full spectrum of statutory retrieval, grounded reasoning, multi-tenant document isolation, and statutory form extraction capabilities via a hardened **FastAPI REST & SSE Gateway**.
+
+```mermaid
+graph TD
+    Client["Client Applications / SDKs"] --> Gateway["FastAPI API Gateway (/api/v1)"]
+    
+    subgraph Security Layer
+        Gateway --> Auth{"Authentication Resolver<br>(AUTH_MODE=prod vs dev)"}
+        Auth -->|Prod: Bearer Token| Principal["Verified Security Principal"]
+        Auth -->|Dev: Test Headers| Principal
+        Principal --> Scope["Immutable UserDocumentSessionScope"]
+    end
+    
+    subgraph Application Service Layer
+        Scope --> QService["LegalQueryService"]
+        Scope --> DService["DocumentManagementService"]
+        Scope --> FService["StatutoryFormsService"]
+        Scope --> DiagService["DiagnosticsService"]
+    end
+    
+    subgraph Domain Engine Pipelines
+        QService --> StatPipe["StatutoryGenerationPipeline (Phase 5)"]
+        QService --> DocPipe["UserDocumentRAGPipeline (Phase 6)"]
+        QService --> FormPipe["StatutoryFormPipeline (Phase 7)"]
+        DService --> DocRepo["UserDocumentRepository (Multi-Tenant Qdrant/BM25)"]
+        FService --> FormReg["StatutoryFormRegistry (Forms 1-58)"]
+        DiagService --> ReadyProbe["Readiness Diagnostics Probe"]
+    end
+    
+    subgraph Response Contracts
+        StatPipe & DocPipe & FormPipe --> DTO["Polymorphic Response DTOs<br>(STATUTORY / DOCUMENT / FORM Citations)"]
+        DTO --> Streamer["Safe SSE Streamer<br>(Pre-Emission AST Claim Verification)"]
+    end
+```
+
+### Core Endpoints
+1. **`POST /api/v1/query`**: Unified grounded query execution across Statutory, User Document, Combined, or Statutory Form engines with AST citation verification.
+2. **`POST /api/v1/query/stream`**: Server-Sent Events (SSE) safe streaming with buffered pre-emission AST verification (no unvalidated legal claims streamed).
+3. **`POST /api/v1/documents`**: Multipart PDF upload ($\le 25\text{MB}$, magic-byte header validation, isolated multi-tenant chunking, embedding, and synchronous indexing).
+4. **`GET /api/v1/documents`**: Scoped document listing for authenticated principal.
+5. **`GET /api/v1/documents/{document_id}`**: Scoped document metadata retrieval (uniform 404 anti-enumeration on missing/unowned documents).
+6. **`DELETE /api/v1/documents/{document_id}`**: Scoped document purging from vectors and BM25 index (uniform 404).
+7. **`POST /api/v1/forms/lookup`**: Sub-millisecond deterministic form lookup by number, section, title, or fuzzy query.
+8. **`GET /api/v1/forms/{id_or_number}`**: Direct Second Schedule statutory form retrieval.
+9. **`GET /api/v1/health`**: Lightweight process liveness probe ($< 1\text{ms}$).
+10. **`GET /api/v1/ready`**: Deep dependency readiness diagnostic probe inspecting Qdrant, embeddings, forms registry, and LLM configuration.

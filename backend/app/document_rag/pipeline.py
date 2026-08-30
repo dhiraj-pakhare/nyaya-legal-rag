@@ -338,3 +338,15 @@ class UserDocumentRAGPipeline:
                 provider=getattr(self.llm, "provider_name", "mock")
             )
         )
+
+
+_GLOBAL_USER_DOC_RAG_PIPELINE: Optional[UserDocumentRAGPipeline] = None
+
+
+def get_user_doc_rag_pipeline() -> UserDocumentRAGPipeline:
+    """Get or initialize the global singleton UserDocumentRAGPipeline instance."""
+    global _GLOBAL_USER_DOC_RAG_PIPELINE
+    if _GLOBAL_USER_DOC_RAG_PIPELINE is None:
+        _GLOBAL_USER_DOC_RAG_PIPELINE = UserDocumentRAGPipeline()
+    return _GLOBAL_USER_DOC_RAG_PIPELINE
+

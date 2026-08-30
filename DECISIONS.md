@@ -277,3 +277,38 @@ If raw LLM tokens are streamed directly to the client before citation validation
 
 ### 4. Multi-Tenant and Corpus Isolation
 - User-uploaded documents can never enter or mutate `StatutoryFormRegistry`.
+
+---
+
+## 12. Phase 8: API Gateway, Hardened Auth Boundary & Safe Streaming
+
+### 1. Hardened Production vs. Development Authentication Boundary
+- **Production Mode (`AUTH_MODE=prod`)**:
+  - `X-User-ID`, `X-Session-ID`, and request-body `user_id` fields are strictly ignored.
+  - Identity is established exclusively via cryptographically verified Bearer tokens / JWT gateway context.
+  - Missing/invalid authentication returns `HTTP 401 Unauthorized`.
+  - Silent `dev_user_default` fallback is forbidden in production.
+- **Development Mode (`AUTH_MODE=dev`)**:
+  - Active only under explicit configuration (`AUTH_MODE=dev`).
+  - Allows test harnesses to supply `X-User-ID` and `X-Session-ID` headers for automated multi-tenant isolation tests.
+
+### 2. Polymorphic Citation Representation
+- `CitationDTO` is modeled as a discriminated union over `citation_type`:
+  - `STATUTORY` (`StatutoryCitationDTO`): `act`, `act_short`, `section`, `section_title`, `citation_text`, `source_id`, `page_start`, `page_end`.
+  - `DOCUMENT` (`DocumentCitationDTO`): `document_id`, `filename`, `page_number`, `citation_text`, `source_id`.
+  - `FORM` (`FormCitationDTO`): `form_number`, `form_title`, `applicable_sections`, `citation_text`, `source_id`, `page_start`, `page_end`.
+- Unvalidated citations are never emitted.
+
+### 3. Synchronous Document Ingestion Contract
+- `POST /api/v1/documents` validates PDF magic bytes (`%PDF-`), enforces $\le 25\text{MB}$ size limit, sanitizes filenames, and executes synchronous extraction, chunking, and isolated Qdrant/BM25 indexing before returning `201 Created`.
+- Ensures immediate read-after-write query consistency without requiring distributed worker queues.
+
+### 4. Pre-Emission SSE Streaming Safety Guarantee
+- `POST /api/v1/query/stream` emits status events (`event: status`), buffers generated tokens into a server-side buffer, executes AST claim/citation validation, and emits text tokens (`event: token`) only *after* validation passes.
+- Invalid citations trigger at most 1 regeneration pass; if still invalid, emits `event: refusal` (`status="VALIDATION_FAILED"`, `answer=null`). Substantive legal claims are never streamed prior to validation.
+
+### 5. Diagnostics & Privacy Isolation
+- `GET /api/v1/health`: Lightweight non-blocking liveness probe ($< 1\text{ms}$).
+- `GET /api/v1/ready`: Deep dependency readiness probe inspecting Qdrant, embeddings, forms registry, and LLM configuration without leaking credentials, internal filesystem paths, or raw stack traces.
+- Anti-enumeration: Missing documents and unowned cross-tenant documents return an identical uniform `404 Not Found` response.
+

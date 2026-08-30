@@ -328,3 +328,15 @@ class UserDocumentRepository:
             collection_name=self.collection_name,
             count_filter=filter_condition
         ).count
+
+
+_GLOBAL_USER_DOC_REPO: Optional[UserDocumentRepository] = None
+
+
+def get_user_doc_repository() -> UserDocumentRepository:
+    """Get or initialize the global singleton UserDocumentRepository instance."""
+    global _GLOBAL_USER_DOC_REPO
+    if _GLOBAL_USER_DOC_REPO is None:
+        _GLOBAL_USER_DOC_REPO = UserDocumentRepository()
+    return _GLOBAL_USER_DOC_REPO
+

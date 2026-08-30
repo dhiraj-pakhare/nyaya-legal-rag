@@ -248,3 +248,15 @@ class StatutoryGenerationPipeline:
             validation_status=validation_status,
             telemetry=telemetry
         )
+
+
+_GLOBAL_GENERATION_PIPELINE: Optional[StatutoryGenerationPipeline] = None
+
+
+def get_generation_pipeline() -> StatutoryGenerationPipeline:
+    """Get or initialize the global singleton StatutoryGenerationPipeline instance."""
+    global _GLOBAL_GENERATION_PIPELINE
+    if _GLOBAL_GENERATION_PIPELINE is None:
+        _GLOBAL_GENERATION_PIPELINE = StatutoryGenerationPipeline()
+    return _GLOBAL_GENERATION_PIPELINE
+

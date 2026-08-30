@@ -170,3 +170,15 @@ class QdrantRepository:
             return self.client.count(self.collection_name).count
         except Exception:
             return 0
+
+
+_GLOBAL_QDRANT_REPO: Optional[QdrantRepository] = None
+
+
+def get_qdrant_repository() -> QdrantRepository:
+    """Get or initialize the global singleton QdrantRepository instance."""
+    global _GLOBAL_QDRANT_REPO
+    if _GLOBAL_QDRANT_REPO is None:
+        _GLOBAL_QDRANT_REPO = QdrantRepository()
+    return _GLOBAL_QDRANT_REPO
+

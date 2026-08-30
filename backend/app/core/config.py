@@ -46,5 +46,13 @@ class Settings(BaseModel):
     ocr_max_pages: int = int(os.getenv("OCR_MAX_PAGES", "10"))
     ocr_timeout_seconds: float = float(os.getenv("OCR_TIMEOUT_SECONDS", "10.0"))
 
+    # Phase 8: API & Application Integration
+    api_prefix: str = os.getenv("API_PREFIX", "/api/v1")
+    auth_mode: str = os.getenv("AUTH_MODE", "prod").lower()  # "prod" | "dev"
+    jwt_secret: str = os.getenv("JWT_SECRET", "dev_secret_key_change_in_production")
+    jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
+    cors_origins: str = os.getenv("CORS_ORIGINS", "*")
+
 
 settings = Settings()
+
