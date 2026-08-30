@@ -51,6 +51,18 @@ class CitationVerification(BaseModel):
     is_verified: bool = True
     failure_reason: Optional[str] = None
 
+    @property
+    def citation_tag(self) -> str:
+        return self.citation_text
+
+    @property
+    def section_number(self) -> str:
+        return self.section
+
+    @property
+    def is_valid(self) -> bool:
+        return self.is_verified
+
 
 class ValidationStatus(BaseModel):
     """Detailed result of programmatic citation and claim validation."""
@@ -58,6 +70,7 @@ class ValidationStatus(BaseModel):
     checked_citations_count: int = 0
     valid_citations_count: int = 0
     invalid_citations_count: int = 0
+    verified_citations: List[CitationVerification] = Field(default_factory=list)
     invalid_citations: List[Dict[str, Any]] = Field(default_factory=list)
     uncited_claims_detected: List[str] = Field(default_factory=list)
     regeneration_attempted: bool = False
@@ -93,3 +106,19 @@ class LegalAnswerResponse(BaseModel):
     retrieval_metadata: Dict[str, Any] = Field(default_factory=dict)
     validation_status: Optional[ValidationStatus] = None
     telemetry: Optional[GenerationTelemetry] = None
+
+    @property
+    def verified_citations(self) -> List[CitationVerification]:
+        return self.citations
+
+    @property
+    def confidence_score(self) -> float:
+        if self.confidence and isinstance(self.confidence, dict):
+            return float(self.confidence.get("confidence_score", 0.0))
+        return 0.0
+
+    @property
+    def regeneration_attempted(self) -> bool:
+        if self.validation_status:
+            return bool(self.validation_status.regeneration_attempted)
+        return False

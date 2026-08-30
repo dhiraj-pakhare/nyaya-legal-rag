@@ -307,6 +307,15 @@ class MockLLMProvider(LLMProvider):
         """Queue a list of deterministic responses to return sequentially."""
         self.response_queue = list(responses)
 
+    def set_response_queue(self, responses: List[str]):
+        """Alias for set_responses."""
+        self.set_responses(responses)
+
+    def set_canned_response(self, text: str):
+        """Set a single response for subsequent calls."""
+        self.default_response = text
+        self.response_queue = []
+
     def generate(self, messages: List[LLMMessage], **kwargs) -> LLMResponse:
         self.call_history.append(messages)
 

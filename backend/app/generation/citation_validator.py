@@ -215,6 +215,7 @@ class CitationValidator:
             checked_citations_count=len(parsed_citations),
             valid_citations_count=len(verified_citations),
             invalid_citations_count=len(invalid_citations),
+            verified_citations=verified_citations,
             invalid_citations=invalid_citations,
             uncited_claims_detected=uncited_claims,
             regeneration_attempted=False,
