@@ -19,7 +19,8 @@ The system features coordinate-aware Gazette PDF parsing, hierarchical statutory
 | **Phase 7** | **Statutory Forms Second Schedule Parser (58 Forms)** | :white_check_mark: **Complete & Validated** |
 | **Phase 8** | **FastAPI Gateway + Hardened Security + SSE Streaming** | :white_check_mark: **Complete & Validated** |
 | **Part B** | **Statutory Forms PDF Exporter + Manifest + Download & ZIP API** | :white_check_mark: **Complete & Validated** |
-| **Part D** | **Asynchronous Background Ingestion + Job State Machine & Status Probe** | :white_check_mark: **Complete & Validated** |
+| **Part D (Ingestion)** | **Asynchronous Background Ingestion + Job State Machine & Status Probe** | :white_check_mark: **Complete & Validated** |
+| **Part D (Ops)** | **API Rate Limiting + Prometheus Metrics Observability (`/api/v1/metrics`)** | :white_check_mark: **Complete & Validated** |
 
 
 

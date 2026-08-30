@@ -53,6 +53,12 @@ class Settings(BaseModel):
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
     cors_origins: str = os.getenv("CORS_ORIGINS", "*")
 
+    # Part D: Rate Limiting & Metrics Configuration
+    rate_limit_enabled: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() in ("true", "1", "yes")
+    rate_limit_requests_per_minute: int = int(os.getenv("RATE_LIMIT_REQUESTS_PER_MINUTE", "60"))
+    rate_limit_burst_limit: int = int(os.getenv("RATE_LIMIT_BURST_LIMIT", "10"))
+    rate_limit_time_window_seconds: int = int(os.getenv("RATE_LIMIT_TIME_WINDOW_SECONDS", "60"))
+
 
 settings = Settings()
 

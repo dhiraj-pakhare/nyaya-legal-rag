@@ -379,9 +379,9 @@ graph TD
 ```
 
 ### Core Endpoints
-1. **`POST /api/v1/query`**: Unified grounded query execution across Statutory, User Document, Combined, or Statutory Form engines with AST citation verification.
-2. **`POST /api/v1/query/stream`**: Server-Sent Events (SSE) safe streaming with buffered pre-emission AST verification (no unvalidated legal claims streamed).
-3. **`POST /api/v1/documents/upload`** (and **`POST /api/v1/documents`**): Non-blocking asynchronous PDF upload ($\le 25\text{MB}$, magic-byte header validation, returns HTTP 201 Created immediately with `job_id`, `document_id`, `status="QUEUED"`).
+1. **`POST /api/v1/query`** (and **`POST /api/v1/chat`**): Unified grounded query execution protected by identity-keyed rate limiting, AST citation verification, and metric telemetry.
+2. **`POST /api/v1/query/stream`**: Server-Sent Events (SSE) safe streaming protected by rate limiting (buffered pre-emission AST verification).
+3. **`POST /api/v1/documents/upload`** (and **`POST /api/v1/documents`**): Non-blocking asynchronous PDF upload protected by rate limiting ($\le 25\text{MB}$, magic-byte header validation, returns HTTP 201 Created immediately with `job_id`, `document_id`, `status="QUEUED"`).
 4. **`GET /api/v1/documents/{document_id}/status`**: Status polling probe returning `job_id`, `status` (`QUEUED` $\rightarrow$ `PROCESSING` $\rightarrow$ `READY` / `FAILED`), `progress` (0–100%), `stage`, and safe error message. Enforces uniform 404 anti-enumeration.
 5. **`GET /api/v1/documents`**: Scoped document listing for authenticated principal.
 6. **`GET /api/v1/documents/{document_id}`**: Scoped document metadata retrieval (uniform 404 anti-enumeration on missing/unowned documents).
@@ -394,4 +394,6 @@ graph TD
 13. **`GET /api/v1/forms/{id_or_number}`**: Direct Second Schedule statutory form JSON metadata retrieval.
 14. **`GET /api/v1/health`**: Lightweight process liveness probe ($< 1\text{ms}$).
 15. **`GET /api/v1/ready`**: Deep dependency readiness diagnostic probe inspecting Qdrant, embeddings, forms registry, and LLM configuration.
+16. **`GET /api/v1/metrics`**: Official Prometheus text/plain exposition format endpoint exporting HTTP request totals/durations, chat queries, document uploads, ingestion job state transitions, embedding/retrieval latencies, refusal counts, token usage, configuration-driven LLM cost estimates, and Qdrant health gauge.
+
 

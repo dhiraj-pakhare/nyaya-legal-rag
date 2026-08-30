@@ -16,6 +16,8 @@ from backend.app.services.document_service import (
     get_document_service,
 )
 
+from backend.app.core.rate_limiter import enforce_rate_limit
+
 router = APIRouter(prefix="/documents", tags=["User Documents"])
 
 
@@ -23,6 +25,7 @@ router = APIRouter(prefix="/documents", tags=["User Documents"])
     "/upload",
     response_model=DocumentUploadResponseDTO,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(enforce_rate_limit)],
     summary="Asynchronous User PDF Upload",
     description="Submits an uploaded PDF document for asynchronous background extraction, chunking, embedding, and vector indexing."
 )
@@ -30,6 +33,7 @@ router = APIRouter(prefix="/documents", tags=["User Documents"])
     "",
     response_model=DocumentUploadResponseDTO,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(enforce_rate_limit)],
     summary="Asynchronous User PDF Upload (Alias)",
     description="Submits an uploaded PDF document for asynchronous background extraction, chunking, embedding, and vector indexing."
 )

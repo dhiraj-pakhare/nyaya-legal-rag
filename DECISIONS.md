@@ -362,5 +362,34 @@ If raw LLM tokens are streamed directly to the client before citation validation
 - Immutable `UserDocumentSessionScope` is validated and bound at HTTP upload creation time.
 - The background thread executes strictly under the captured principal identity (`user_id`). Status polling by unowned principals returns uniform `404 Not Found` (`DOCUMENT_NOT_FOUND`).
 
+---
+
+## 15. Part D: API Rate Limiting & Prometheus Metrics Observability
+
+### 1. Identity-Scoped Sliding-Window Rate Limiter
+- **Scope & Keying**: Rate limits operate at the API boundary on protected endpoints (`POST /api/v1/query`, `POST /api/v1/chat`, `POST /api/v1/documents/upload`, `POST /api/v1/documents`). Keyed strictly on the trusted security principal identity (`scope.user_id`) resolved by `get_session_scope`.
+- **Security & Anti-Spoofing**: Unauthenticated header manipulation or changing `user_id` payload values in request bodies cannot bypass quota limits because the rate limiter operates exclusively on the verified security principal identity.
+- **Limitation**: Single-process, thread-safe in-memory sliding-window log implementation suitable for single-node / local deployment.
+- **429 Response**: When requests exceed configured quota (`RATE_LIMIT_REQUESTS_PER_MINUTE`), returns HTTP `429 Too Many Requests` with a `Retry-After: <seconds>` header and a structured `ErrorResponseDTO` (`RATE_LIMIT_EXCEEDED`).
+
+### 2. Zero-Dependency Prometheus Metrics Exposition
+- **Exposition Endpoint**: `GET /api/v1/metrics` returning official Prometheus text/plain exposition format (`Content-Type: text/plain; version=0.0.4; charset=utf-8`).
+- **Low-Cardinality Label Enforcement**: Labels NEVER contain sensitive or high-cardinality values such as `user_id`, `session_id`, `document_id`, query text, raw prompt, or API credentials.
+- **Exported Metrics**:
+  - `nyaya_http_requests_total{method, endpoint, status_code}` (Counter): Total HTTP requests handled.
+  - `nyaya_http_request_duration_seconds{method, endpoint}` (Histogram sum/count): HTTP request latency.
+  - `nyaya_chat_requests_total{intent}` (Counter): Legal query requests by intent.
+  - `nyaya_chat_duration_seconds{intent}` (Histogram sum/count): Processing latency of legal queries.
+  - `nyaya_document_uploads_total{status}` (Counter): Document upload submissions.
+  - `nyaya_document_ingestion_jobs_total{status, stage}` (Counter): Background ingestion job state transitions.
+  - `nyaya_document_ingestion_failures_total` (Counter): Total background ingestion failures.
+  - `nyaya_retrieval_duration_seconds{retriever_type}` (Histogram sum/count): Dense, BM25, and Hybrid retrieval operation timing.
+  - `nyaya_embedding_duration_seconds` (Histogram sum/count): Embedding model execution latency.
+  - `nyaya_refusal_count_total{reason}` (Counter): Grounded refusal responses by reason.
+  - `nyaya_llm_prompt_tokens_total` / `nyaya_llm_completion_tokens_total` / `nyaya_llm_tokens_total` (Counters): Token usage accounting.
+  - `nyaya_llm_estimated_cost_usd_total` (Counter): Configuration-driven LLM cost estimation based on provider pricing (`LLM_COST_PER_1K_INPUT_TOKENS`, `LLM_COST_PER_1K_OUTPUT_TOKENS`). Local/mock providers calculate as `$0.00`.
+  - `nyaya_qdrant_available` (Gauge): Vector DB availability gauge (`1.0` if healthy, `0.0` if degraded/unavailable).
+
+
 
 

@@ -12,6 +12,7 @@ import logging
 import time
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
+from backend.app.core.metrics import get_metrics_collector
 from backend.app.api.schemas.query import (
     CitationDTO,
     CitationType,
@@ -41,7 +42,7 @@ logger = logging.getLogger("nyaya.services.query")
 
 
 class LegalQueryService:
-    """Unified application service coordinating multi-corpus queries and safe SSE streams."""
+    """Application service orchestrating legal reasoning across statutory, document, and form domain pipelines."""
 
     def __init__(
         self,
@@ -61,6 +62,7 @@ class LegalQueryService:
         """Execute unified grounded legal query across statutory, document, and form corpora."""
         start_time = time.perf_counter()
         query_text = request.query.strip()
+        collector = get_metrics_collector()
 
         # 1. Statutory Form Intent Check (e.g. "Form 1", "Form under s.35(3)")
         if request.enable_forms and self._is_form_intent(query_text):
@@ -80,7 +82,7 @@ class LegalQueryService:
                         applicable_sections=form_lookup.form.applicable_sections
                     )
                 ]
-                return QueryResponseDTO(
+                dto = QueryResponseDTO(
                     query=query_text,
                     status="SUCCESS",
                     answer=form_lookup.rendered_markdown or form_lookup.form.raw_text,
@@ -90,8 +92,10 @@ class LegalQueryService:
                     routed_corpus="STATUTORY_FORM",
                     telemetry={"latency_ms": form_lookup.latency_ms}
                 )
+                collector.record_chat_request("STATUTORY_FORM", time.perf_counter() - start_time)
+                return dto
             elif form_lookup.status == "AMBIGUOUS":
-                return QueryResponseDTO(
+                dto = QueryResponseDTO(
                     query=query_text,
                     status="AMBIGUOUS",
                     answer=None,
@@ -103,8 +107,10 @@ class LegalQueryService:
                     candidate_forms=form_lookup.candidate_forms,
                     telemetry={"latency_ms": form_lookup.latency_ms}
                 )
+                collector.record_chat_request("STATUTORY_FORM", time.perf_counter() - start_time)
+                return dto
             elif form_lookup.status == "NOT_FOUND" and form_lookup.is_refused:
-                return QueryResponseDTO(
+                dto = QueryResponseDTO(
                     query=query_text,
                     status="NOT_FOUND",
                     answer=None,
@@ -115,6 +121,9 @@ class LegalQueryService:
                     routed_corpus="STATUTORY_FORM",
                     telemetry={"latency_ms": form_lookup.latency_ms}
                 )
+                collector.record_chat_request("STATUTORY_FORM", time.perf_counter() - start_time)
+                collector.record_refusal("FORM_NOT_FOUND")
+                return dto
 
         # 2. Check if active user documents are present or specified
         active_doc_ids = request.document_ids or []
@@ -132,11 +141,31 @@ class LegalQueryService:
                 query_text=query_text,
                 scope=effective_scope
             )
-            return self._map_pipeline_response_to_dto(query_text, doc_resp)
+            dto = self._map_pipeline_response_to_dto(query_text, doc_resp)
+            dur = time.perf_counter() - start_time
+            collector.record_chat_request(dto.routed_corpus or "DOCUMENT", dur)
+            if dto.is_refused:
+                collector.record_refusal(dto.status)
+            if doc_resp.telemetry:
+                p_tok = doc_resp.telemetry.prompt_tokens or 0
+                c_tok = doc_resp.telemetry.completion_tokens or 0
+                if p_tok > 0 or c_tok > 0:
+                    collector.record_tokens_and_cost(p_tok, c_tok)
+            return dto
 
         # 3. Pure Statutory Legal Query (Phase 5)
         statutory_resp = self.statutory_pipeline.generate(query_text)
-        return self._map_pipeline_response_to_dto(query_text, statutory_resp)
+        dto = self._map_pipeline_response_to_dto(query_text, statutory_resp)
+        dur = time.perf_counter() - start_time
+        collector.record_chat_request(dto.routed_corpus or "STATUTORY", dur)
+        if dto.is_refused:
+            collector.record_refusal(dto.status)
+        if statutory_resp.telemetry:
+            p_tok = statutory_resp.telemetry.prompt_tokens or 0
+            c_tok = statutory_resp.telemetry.completion_tokens or 0
+            if p_tok > 0 or c_tok > 0:
+                collector.record_tokens_and_cost(p_tok, c_tok)
+        return dto
 
     async def stream_query(
         self,

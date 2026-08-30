@@ -99,6 +99,17 @@ class ValidationFailedError(APIError):
         )
 
 
+class RateLimitExceededError(APIError):
+    def __init__(self, message: str = "Rate limit exceeded. Please retry later.", retry_after_seconds: int = 60):
+        super().__init__(
+            message=message,
+            code="RATE_LIMIT_EXCEEDED",
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            details={"retry_after_seconds": retry_after_seconds}
+        )
+        self.retry_after_seconds = retry_after_seconds
+
+
 class ServiceUnavailableError(APIError):
     def __init__(self, message: str = "Required system dependencies are unavailable.", details: Optional[Any] = None):
         super().__init__(
@@ -123,9 +134,14 @@ def register_error_handlers(app: FastAPI) -> None:
                 details=exc.details
             )
         )
+        headers = {}
+        if hasattr(exc, "retry_after_seconds") and exc.retry_after_seconds:
+            headers["Retry-After"] = str(exc.retry_after_seconds)
+
         return JSONResponse(
             status_code=exc.status_code,
-            content=payload.model_dump()
+            content=payload.model_dump(),
+            headers=headers if headers else None
         )
 
     @app.exception_handler(StarletteHTTPException)
