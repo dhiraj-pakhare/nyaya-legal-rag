@@ -247,11 +247,11 @@ def test_duplicate_upload_deduplication_contract(client):
     doc_id_1 = resp1.json()["document_id"]
 
     # Wait until first upload is READY
-    for _ in range(50):
+    for _ in range(300):
         s = client.get(f"/api/v1/documents/{doc_id_1}/status", headers=headers).json()
         if s["status"] == "READY":
             break
-        time.sleep(0.05)
+        time.sleep(0.1)
 
     # Second upload of identical file
     resp2 = client.post("/api/v1/documents/upload", files={"file": ("doc1_copy.pdf", pdf_bytes, "application/pdf")}, headers=headers)

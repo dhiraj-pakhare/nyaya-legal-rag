@@ -1,0 +1,158 @@
+services:
+  # ─── 1. Vector Database ───────────────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.13.2
+    container_name: nyaya-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/6333' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - nyaya-network
+
+  # ─── 2. Distributed Queue & Cache ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: nyaya-redis
+    restart: unless-stopped
+    # Redis is NOT exposed publicly on host ports; internal communication only
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - nyaya-network
+
+  # ─── 3. FastAPI Gateway Service ───────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: nyaya-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - AUTH_MODE=prod
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_COLLECTION=nyaya_legal_corpus
+      - QDRANT_USER_COLLECTION=nyaya_user_documents
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PDF_PATH=/app/BNS bare act 2023.pdf
+      - LLM_PROVIDER=ollama
+      - LLM_MODEL=${LLM_MODEL:-qwen2.5:3b}
+      - LLM_BASE_URL=http://host.docker.internal:11434
+      - CORS_ORIGINS=*
+      - RATE_LIMIT_ENABLED=true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - app_data:/app/data
+      - ./BNS bare act 2023.pdf:/app/BNS bare act 2023.pdf:ro
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    networks:
+      - nyaya-network
+
+  # ─── 4. Asynchronous Task & Ingestion Worker ──────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: nyaya-worker
+    restart: unless-stopped
+    command: ["python", "-m", "backend.app.workers.worker"]
+    environment:
+      - ENVIRONMENT=production
+      - AUTH_MODE=prod
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_COLLECTION=nyaya_legal_corpus
+      - QDRANT_USER_COLLECTION=nyaya_user_documents
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PDF_PATH=/app/BNS bare act 2023.pdf
+      - LLM_PROVIDER=ollama
+      - LLM_MODEL=${LLM_MODEL:-qwen2.5:3b}
+      - LLM_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - app_data:/app/data
+      - ./BNS bare act 2023.pdf:/app/BNS bare act 2023.pdf:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import sys; sys.exit(0)'"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - nyaya-network
+
+  # ─── 5. Production Web Frontend ───────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+    container_name: nyaya-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - nyaya-network
+
+volumes:
+  qdrant_data:
+    name: nyaya_qdrant_data
+  redis_data:
+    name: nyaya_redis_data
+  app_data:
+    name: nyaya_app_data
+
+networks:
+  nyaya-network:
+    name: nyaya_network
+    driver: bridge

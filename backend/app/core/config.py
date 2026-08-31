@@ -23,6 +23,11 @@ class Settings(BaseModel):
     qdrant_collection: str = os.getenv("QDRANT_COLLECTION", "nyaya_legal_corpus")
     qdrant_api_key: str = os.getenv("QDRANT_API_KEY", "")
     
+    # Redis configuration
+    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    redis_host: str = os.getenv("REDIS_HOST", "localhost")
+    redis_port: int = int(os.getenv("REDIS_PORT", "6379"))
+
     # Document paths
     pdf_path: str = os.getenv("PDF_PATH", "BNS bare act 2023.pdf")
     

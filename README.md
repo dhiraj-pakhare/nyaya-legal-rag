@@ -261,6 +261,106 @@ npm run dev
 
 ---
 
+## Docker Architecture & Containerized Deployment
+
+Nyaya Legal RAG provides a multi-container Docker Compose architecture for production deployment, defining isolated services, persistent volumes, healthchecks, and internal networking:
+
+```
+┌────────────────────────────────────────────────────────┐
+│               Host Browser / Client                    │
+└───────────────┬────────────────────────┬───────────────┘
+                │ :5173                  │ :8000
+                ▼                        ▼
+┌──────────────────────────┐   ┌─────────────────────────┐
+│ nyaya-frontend (Nginx)   │───│ nyaya-api (FastAPI)     │
+└──────────────────────────┘   └───────────┬─────────────┘
+                                           │
+         ┌─────────────────────────────────┼────────────────────────┐
+         ▼                                 ▼                        ▼
+┌──────────────────────────┐   ┌─────────────────────────┐   ┌──────────────────────────┐
+│ nyaya-worker (Worker)    │   │ nyaya-qdrant (Vector DB)│   │ nyaya-redis (Queue)      │
+│ Ingestion & Queue Poller │   │ Port 6333, Volume       │   │ Internal (not exposed)   │
+└──────────────────────────┘   └─────────────────────────┘   └──────────────────────────┘
+```
+
+### Services & Port Configuration
+| Service | Image / Build | Container Name | Host Port | Internal Port | Purpose |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`api`** | Multi-stage `Dockerfile` (Python 3.11-slim) | `nyaya-api` | `8000` | `8000` | FastAPI gateway, hybrid search, citation validation |
+| **`worker`** | Shared `Dockerfile` (Python 3.11-slim) | `nyaya-worker` | — | — | Standalone background ingestion & task processor |
+| **`qdrant`** | `qdrant/qdrant:v1.13.2` | `nyaya-qdrant` | `6333` | `6333` | Vector database (1,027 statutory points + user docs) |
+| **`redis`** | `redis:7-alpine` | `nyaya-redis` | — | `6379` | Message broker & queue (internal only, not exposed) |
+| **`frontend`** | Multi-stage `frontend/Dockerfile` (Nginx) | `nyaya-frontend` | `5173` | `80` | Production React SPA with reverse proxy & SSE support |
+
+### Persistent Named Volumes
+- **`nyaya_qdrant_data`**: Persists the Qdrant vector database (`/qdrant/storage`) across container restarts.
+- **`nyaya_redis_data`**: Persists Redis queue state and keys (`/data`).
+- **`nyaya_app_data`**: Shared volume (`/app/data`) for extracted statutory forms (`data/forms/`) and tenant documents.
+
+### Docker Setup Instructions
+
+#### 1. Prerequisites
+- Docker Engine 24+ and Docker Compose v2.20+
+- Host Ollama instance running with model `qwen2.5:3b` (or configure external API key)
+- Source Gazette PDF: `BNS bare act 2023.pdf` placed in the repository root
+
+#### 2. Build the Docker Images
+```bash
+docker compose build
+```
+
+#### 3. Start the Stack
+```bash
+docker compose up -d
+```
+
+#### 4. Run the Idempotent Bootstrap Script
+Populates the containerized Qdrant instance with all 1,027 statutory vectors and extracts the 58 Second Schedule forms:
+```bash
+docker compose exec api /app/scripts/bootstrap.sh
+```
+*(If already initialized, the bootstrap script verifies counts and completes in under 2 seconds without duplicating data).*
+
+#### 5. Verify Service Health
+```bash
+docker compose ps
+```
+Confirm that all 5 services report `Up (healthy)`.
+
+#### 6. Access the Application
+- **Frontend Web UI**: `http://localhost:5173/chat`
+- **FastAPI Documentation (Swagger)**: `http://localhost:8000/docs`
+- **Health Diagnostic Probe**: `http://localhost:8000/health` (and `http://localhost:8000/api/v1/health`)
+- **Prometheus Metrics**: `http://localhost:8000/api/v1/metrics`
+- **Qdrant Dashboard / Health**: `http://localhost:6333/dashboard` and `http://localhost:6333/healthz`
+
+#### 7. Inspecting Logs
+```bash
+# View aggregated real-time logs
+docker compose logs -f
+
+# Inspect specific services
+docker compose logs -f api
+docker compose logs -f worker
+```
+
+#### 8. Stopping and Restarting the Stack
+```bash
+# Graceful shutdown (preserves all vector data and extracted forms)
+docker compose down
+
+# Restart the stack
+docker compose up -d
+
+# Rebuild containers after code modifications
+docker compose up -d --build
+
+# CAUTION: Reset all persistent volumes and data (clean wipe)
+docker compose down -v
+```
+
+---
+
 ## Verification
 
 ### Automated Backend Test Suite
@@ -309,6 +409,10 @@ nyaya-legal-rag/
 │   │   ├── ingestion/            # PDF layout extractor, structure detector, chunker
 │   │   ├── retrieval/            # BM25, exact section lookup, RRF, reranker, pipeline
 │   │   ├── services/             # LegalQueryService coordinator
+│   │   ├── workers/              # Ingestion worker, job manager, standalone worker
+│   │   │   ├── ingestion_worker.py
+│   │   │   ├── job_manager.py
+│   │   │   └── worker.py         # Standalone background worker process
 │   │   └── main.py               # Application factory and middleware assembly
 │   └── tests/                    # 249 unit, integration, and security tests
 ├── frontend/
@@ -319,17 +423,22 @@ nyaya-legal-rag/
 │   │   ├── views/                # ChatView, DocumentsView, FormsView
 │   │   ├── App.tsx               # Root view router
 │   │   └── index.css             # Judicial theme design system
+│   ├── Dockerfile                # Multi-stage production Nginx frontend image
+│   ├── nginx.conf                # Nginx reverse proxy configuration for SPA & SSE
 │   ├── package.json              # React 19, TypeScript, Vite scripts
 │   └── vite.config.ts            # Vite dev proxy configuration
 ├── eval/
 │   └── golden_set.jsonl          # 30-query golden evaluation benchmark set
 ├── scripts/
+│   ├── bootstrap.sh              # Idempotent system bootstrap & ingestion script
 │   ├── ingest.py                 # Corpus extraction and Qdrant ingestion script
 │   ├── extract_forms.py          # Statutory forms PDF extractor script
 │   ├── calibrate_threshold.py    # Multi-factor confidence calibration sweep
 │   └── benchmark_reranking.py    # 5-configuration retrieval & reranking benchmark
 ├── ARCHITECTURE.md               # Detailed system design and AST specifications
 ├── DECISIONS.md                  # Architectural Decision Records (ADRs)
+├── Dockerfile                    # Multi-stage production API and Worker image
+├── docker-compose.yml            # Multi-container Compose definition
 ├── IMPLEMENTATION_PLAN.md        # Development milestone documentation
 ├── requirements.txt              # Python dependencies
 └── .env.example                  # Environment configuration template

@@ -1,0 +1,53 @@
+# Git
+.git
+.gitignore
+
+# Environment files (secrets protection)
+.env
+.env.*
+!.env.example
+
+# Source PDFs (mounted at runtime)
+*.pdf
+**/*.pdf
+
+# Local storage and databases
+qdrant_storage
+*.sqlite
+*.sqlite3
+*.db
+
+# Node / Frontend build artifacts
+node_modules
+frontend/node_modules
+frontend/dist
+
+# Python bytecode and caches
+__pycache__
+*.py[cod]
+*$py.class
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.nox
+
+# Build distributions
+dist
+build
+*.egg-info
+
+# OS artifacts
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary artifacts & scratchpad
+scratch
+*.log
+eval_results_*.json
+calibration_results.json

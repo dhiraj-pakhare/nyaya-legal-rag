@@ -162,7 +162,7 @@ def run_ingestion(
 
 def main():
     parser = argparse.ArgumentParser(description="One-shot Ingestion & Indexing CLI for Nyaya Legal RAG")
-    parser.add_argument("--pdf", default="BNS bare act 2023.pdf", help="Path to BNS/BNSS bare act PDF")
+    parser.add_argument("--pdf", "--pdf-path", dest="pdf", default="BNS bare act 2023.pdf", help="Path to BNS/BNSS bare act PDF")
     parser.add_argument("--qdrant-url", default=None, help="Qdrant server URL (e.g. http://localhost:6333)")
     parser.add_argument("--qdrant-path", default="./qdrant_storage", help="Local directory for embedded Qdrant storage")
     parser.add_argument("--collection", default=settings.qdrant_collection, help="Qdrant collection name")

@@ -45,12 +45,14 @@ class UserDocumentRepository:
             self.client = client
         elif in_memory:
             self.client = QdrantClient(location=":memory:")
+        elif url is not None:
+            self.client = QdrantClient(url=url, api_key=settings.qdrant_api_key or None)
         elif path is not None:
             self.client = get_shared_qdrant_client(path=path)
         elif settings.qdrant_path:
             self.client = get_shared_qdrant_client(path=settings.qdrant_path)
         else:
-            q_url = url or settings.qdrant_url
+            q_url = settings.qdrant_url
             self.client = QdrantClient(url=q_url, api_key=settings.qdrant_api_key or None)
 
         self.ensure_collection()

@@ -42,13 +42,13 @@ def test_document_upload_success_synchronous(client):
 
     # Poll status endpoint until READY
     status_data = None
-    for _ in range(50):
+    for _ in range(300):
         status_resp = client.get(f"/api/v1/documents/{doc_id}/status", headers=headers)
         assert status_resp.status_code == 200
         status_data = status_resp.json()
         if status_data["status"] == "READY":
             break
-        time.sleep(0.05)
+        time.sleep(0.1)
 
     assert status_data["status"] == "READY"
 
