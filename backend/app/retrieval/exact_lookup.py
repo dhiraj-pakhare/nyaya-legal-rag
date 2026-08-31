@@ -22,6 +22,10 @@ class ExactSectionLookup:
         """Index chunks by section number and act_short for O(1) lookup."""
         import re
         for chunk in self.chunks:
+            # Skip malformed schedule row fragment that broke off page 181 Section 303(2) text
+            if chunk.chunk_id == "bns-sched1-s1-001":
+                continue
+
             sec_num = chunk.section_number.strip().lower()
             act_short = chunk.act_short.strip().upper()
             
@@ -53,25 +57,32 @@ class ExactSectionLookup:
         lookup_key = f"{act_short}:{sec_num}"
         matched_chunks = self._section_index.get(lookup_key, [])
         
-        # If specific act was requested but yielded 0 results, fall back to ANY
-        if not matched_chunks and act_short != "ANY":
+        # Only fall back to ANY if no specific act was requested
+        if not matched_chunks and act_short == "ANY":
             matched_chunks = self._section_index.get(f"ANY:{sec_num}", [])
 
         if not matched_chunks:
             logger.info(f"No exact match found for section {sec_num} ({act_short}).")
             return []
 
-        # If a subsection was requested, prioritize chunks containing that subsection
+        # Order matched chunks respecting statute identity, section, subsection, and chunk type
         if intent.subsection:
             target_subsec = intent.subsection.strip().lower()
             exact_subsec_chunks = [
                 c for c in matched_chunks
-                if c.subsection and c.subsection.strip().lower() == target_subsec
+                if (c.subsection and c.subsection.strip().lower() == target_subsec)
+                or (c.section_number.lower().endswith(target_subsec))
             ]
-            if exact_subsec_chunks:
-                # Place exact subsection chunk first, followed by sibling chunks
-                other_chunks = [c for c in matched_chunks if c not in exact_subsec_chunks]
-                matched_chunks = exact_subsec_chunks + other_chunks
+            other_chunks = [c for c in matched_chunks if c not in exact_subsec_chunks]
+            # Within each group, substantive sections precede schedule entries, but both remain available
+            exact_subsec_chunks.sort(key=lambda c: 0 if c.chunk_type == "substantive_section" else 1)
+            other_chunks.sort(key=lambda c: 0 if c.chunk_type == "substantive_section" else 1)
+            matched_chunks = exact_subsec_chunks + other_chunks
+        else:
+            # Base section query: substantive provisions first, followed by classification schedule entries
+            substantive = [c for c in matched_chunks if c.chunk_type == "substantive_section"]
+            schedules = [c for c in matched_chunks if c.chunk_type != "substantive_section"]
+            matched_chunks = substantive + schedules
 
         results: List[RetrievedDocument] = []
         for rank, chunk in enumerate(matched_chunks[:top_k], 1):

@@ -1,7 +1,11 @@
 """Configuration settings for Nyaya Legal RAG."""
 
 import os
+from typing import Optional
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+
+load_dotenv()
 
 
 class Settings(BaseModel):
@@ -13,7 +17,9 @@ class Settings(BaseModel):
     embedding_device: str = os.getenv("EMBEDDING_DEVICE", "cpu")
     
     # Qdrant configuration
+    environment: str = os.getenv("ENVIRONMENT", "production" if os.getenv("AUTH_MODE", "prod").lower() == "prod" and not os.getenv("QDRANT_PATH") else "development").lower()
     qdrant_url: str = os.getenv("QDRANT_URL", "http://localhost:6333")
+    qdrant_path: Optional[str] = os.getenv("QDRANT_PATH", None)
     qdrant_collection: str = os.getenv("QDRANT_COLLECTION", "nyaya_legal_corpus")
     qdrant_api_key: str = os.getenv("QDRANT_API_KEY", "")
     

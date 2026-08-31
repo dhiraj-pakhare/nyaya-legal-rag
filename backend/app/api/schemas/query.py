@@ -19,6 +19,7 @@ class BaseCitationDTO(BaseModel):
     source_id: str                   # chunk_id, document_id, or form_id
     page_start: Optional[int] = None
     page_end: Optional[int] = None
+    source_text: Optional[str] = None
 
 
 class StatutoryCitationDTO(BaseCitationDTO):

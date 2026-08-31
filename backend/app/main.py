@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.api.errors import register_error_handlers
-from backend.app.api.routes import api_router
+from backend.app.api.routes import api_router, health
 from backend.app.core.config import settings
 from backend.app.forms.repository import get_form_registry
 
@@ -89,6 +89,8 @@ def create_app() -> FastAPI:
 
     # 4. Mount API Routers under configured prefix (/api/v1)
     app.include_router(api_router, prefix=settings.api_prefix)
+    # Also mount health router at root for direct /health and /ready probes
+    app.include_router(health.router)
 
     return app
 

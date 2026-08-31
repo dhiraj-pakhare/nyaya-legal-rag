@@ -118,3 +118,42 @@ def test_validator_refusal_text_passes():
     status = validator.validate(answer, docs)
     assert status.is_valid is True
     assert status.checked_citations_count == 0
+
+
+def test_validator_quoted_statutory_text_with_internal_periods():
+    """Verify that statutory quotations containing internal periods are not split into false uncited claims."""
+    validator = CitationValidator()
+    docs = [
+        create_mock_doc(
+            "BNS",
+            "303(2)",
+            "Theft. Cognizable. Non-bailable. Any Magistrate",
+            "Bharatiya Nyaya Sanhita, 2023 (BNS) Section 303(2)\nOffence: Theft. Cognizable. Non-bailable. Any Magistrate\nPunishment: Rigorous imprisonment for not be less than"
+        )
+    ]
+    # Single sentence with quoted schedule text containing multiple periods and one citation
+    answer = 'Section 303(2) of the BNS states: "Offence: Theft. Cognizable. Non-bailable. Any Magistrate" [BNS s.303(2)].'
+
+    status = validator.validate(answer, docs)
+    assert status.is_valid is True
+    assert len(status.uncited_claims_detected) == 0
+    assert status.valid_citations_count == 1
+
+
+def test_validator_normal_sentences_still_split_normally():
+    """Verify that unquoted sentences separated by periods are still split normally."""
+    validator = CitationValidator()
+    # Test sentence splitting directly
+    sentences = validator._split_into_sentences("Theft is an offence. It is cognizable.")
+    assert len(sentences) == 2
+    assert sentences[0] == "Theft is an offence."
+    assert sentences[1] == "It is cognizable."
+
+    # In validation, each separate legal claim sentence must still have a citation
+    docs = [create_mock_doc("BNS", "303", "Theft", "Text...")]
+    # Sentence 1 has citation, Sentence 2 does not
+    answer = "Theft is an offence [BNS s.303]. It is punishable with imprisonment."
+    status = validator.validate(answer, docs)
+    assert status.is_valid is False
+    assert len(status.uncited_claims_detected) == 1
+    assert "punishable with imprisonment" in status.uncited_claims_detected[0]

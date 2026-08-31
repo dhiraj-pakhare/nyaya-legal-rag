@@ -250,3 +250,39 @@ class HybridRetrievalPipeline:
             is_refused=(conf.decision == "REFUSE"),
             refusal_reason=conf.reason
         )
+
+
+_GLOBAL_STATUTORY_CHUNKS: Optional[List[StatutoryChunk]] = None
+
+
+def get_statutory_chunks() -> List[StatutoryChunk]:
+    """Load or parse canonical statutory chunks from the source PDF (cached singleton)."""
+    global _GLOBAL_STATUTORY_CHUNKS
+    if _GLOBAL_STATUTORY_CHUNKS is None:
+        try:
+            from backend.app.ingestion.parser import StatutoryParser
+            parser = StatutoryParser(pdf_path=settings.pdf_path)
+            res = parser.parse()
+            _GLOBAL_STATUTORY_CHUNKS = res.chunks
+            logger.info(f"Loaded {len(_GLOBAL_STATUTORY_CHUNKS)} canonical statutory chunks (555 BNSS + 472 BNS Schedule).")
+        except Exception as e:
+            logger.warning(f"Could not parse statutory chunks: {e}")
+            _GLOBAL_STATUTORY_CHUNKS = []
+    return _GLOBAL_STATUTORY_CHUNKS
+
+
+_GLOBAL_HYBRID_RETRIEVAL_PIPELINE: Optional[HybridRetrievalPipeline] = None
+
+
+def get_hybrid_retrieval_pipeline() -> HybridRetrievalPipeline:
+    """Get or initialize the global singleton HybridRetrievalPipeline instance."""
+    global _GLOBAL_HYBRID_RETRIEVAL_PIPELINE
+    if _GLOBAL_HYBRID_RETRIEVAL_PIPELINE is None:
+        from backend.app.core.qdrant_repo import get_qdrant_repository
+        chunks = get_statutory_chunks()
+        qdrant_repo = get_qdrant_repository()
+        _GLOBAL_HYBRID_RETRIEVAL_PIPELINE = HybridRetrievalPipeline(
+            chunks=chunks,
+            qdrant_repo=qdrant_repo
+        )
+    return _GLOBAL_HYBRID_RETRIEVAL_PIPELINE

@@ -9,6 +9,8 @@ from pydantic import BaseModel
 
 from backend.app.ingestion.cleaner import clean_statutory_text
 from backend.app.ingestion.models import (
+    ActIdentity,
+    ActShortName,
     Chapter,
     FirstScheduleEntry,
     Section,
@@ -37,13 +39,19 @@ class StatutoryParser:
         pdf_path: str = "BNS bare act 2023.pdf",
         substantive_pages: Tuple[int, int] = (1, 157),
         schedule_pages: Tuple[int, int] = (158, 189),
-        max_chunk_chars: int = 3200
+        max_chunk_chars: int = 3200,
+        act: str = ActIdentity.BNSS.value,
+        act_short: str = ActShortName.BNSS.value,
+        parse_schedule: bool = True
     ):
         self.pdf_path = pdf_path
         self.substantive_start, self.substantive_end = substantive_pages
         self.schedule_start, self.schedule_end = schedule_pages
         self.chunker = StatutoryChunker(max_chunk_chars=max_chunk_chars)
         self.validator = IngestionValidator()
+        self.act = act
+        self.act_short = act_short
+        self.parse_schedule = parse_schedule
 
     def parse(self) -> IngestionResult:
         """Run the end-to-end statutory parsing pipeline."""
@@ -55,20 +63,22 @@ class StatutoryParser:
         )
         
         # 2. Detect Chapters, Sections, Subsections, Provisos, Explanations
-        detector = StructureDetector(pages_data)
+        detector = StructureDetector(pages_data, act=self.act, act_short=self.act_short)
         document = detector.detect_structure()
         
         # 3. Parse The First Schedule (Offences under BNS, Pages 158–189)
-        schedule_parser = FirstScheduleParser(self.pdf_path)
-        schedule_entries = schedule_parser.parse_schedule(
-            start_page=self.schedule_start,
-            end_page=self.schedule_end
-        )
+        schedule_entries: List[FirstScheduleEntry] = []
+        if self.parse_schedule:
+            schedule_parser = FirstScheduleParser(self.pdf_path)
+            schedule_entries = schedule_parser.parse_schedule(
+                start_page=self.schedule_start,
+                end_page=self.schedule_end
+            )
         
         # 4. Generate Structure-Aware Statutory Chunks
         chunks = self.chunker.chunk_all(
             sections=document.sections,
-            schedule_entries=schedule_entries
+            schedule_entries=schedule_entries if self.parse_schedule else None
         )
         
         # 5. Validate the output and generate report

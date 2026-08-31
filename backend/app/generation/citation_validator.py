@@ -38,12 +38,41 @@ class CitationValidator:
         self.parser = parser or CitationParser()
 
     def _split_into_sentences(self, text: str) -> List[str]:
-        """Split text into sentences while respecting abbreviations like s. or sec."""
-        # Protect s. and sec. from sentence split
-        protected = re.sub(r'\b(s|sec|no|mr|mrs|dr)\.\s*', r'\1<DOT> ', text, flags=re.IGNORECASE)
-        # Split on sentence boundaries
+        """Split text into sentences while respecting abbreviations, decimals, and quotations."""
+        # 1. Protect punctuation inside quotation marks (both standard and smart quotes)
+        def _mask_quoted_punct(match):
+            quoted = match.group(0)
+            return (
+                quoted.replace('.', '<QDOT>')
+                      .replace('!', '<QEXCL>')
+                      .replace('?', '<QQMARK>')
+            )
+
+        protected = re.sub(r'("[^"]*?"|“[^”]*?”)', _mask_quoted_punct, text)
+        protected = re.sub(r"('[^'\n]*?')", _mask_quoted_punct, protected)
+
+        # 2. Protect abbreviations like s., sec., no., etc. from sentence split
+        protected = re.sub(r'\b(s|sec|no|mr|mrs|dr)\.', r'\1<DOT>', protected, flags=re.IGNORECASE)
+
+        # 3. Protect decimal numbers (e.g. 3.5)
+        protected = re.sub(r'(?<=\d)\.(?=\d)', '<DECDOT>', protected)
+
+        # 4. Split on sentence boundaries
         raw_sentences = re.split(r'(?<=[.!?])\s+', protected)
-        sentences = [s.replace('<DOT>', '.').strip() for s in raw_sentences if s.strip()]
+
+        # 5. Restore placeholders and clean
+        sentences = []
+        for s in raw_sentences:
+            cleaned = (
+                s.replace('<DOT>', '.')
+                 .replace('<DECDOT>', '.')
+                 .replace('<QDOT>', '.')
+                 .replace('<QEXCL>', '!')
+                 .replace('<QQMARK>', '?')
+                 .strip()
+            )
+            if cleaned:
+                sentences.append(cleaned)
         return sentences
 
     def _is_meta_sentence(self, sentence: str) -> bool:

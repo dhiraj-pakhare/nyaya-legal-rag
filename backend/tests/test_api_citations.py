@@ -119,3 +119,33 @@ def test_query_response_polymorphic_union():
     assert data["citations"][0]["citation_type"] == "STATUTORY"
     assert data["citations"][1]["citation_type"] == "DOCUMENT"
     assert data["citations"][2]["citation_type"] == "FORM"
+
+
+def test_statutory_citation_dto_with_source_text():
+    """Verify source_text serialization on StatutoryCitationDTO."""
+    dto_with_text = StatutoryCitationDTO(
+        citation_text="[BNS s.103]",
+        citation_type=CitationType.STATUTORY,
+        is_verified=True,
+        source_id="bns_s103_p1",
+        act="Bharatiya Nyaya Sanhita, 2023",
+        act_short="BNS",
+        section="103",
+        section_title="Punishment for murder",
+        source_text="Whoever commits murder shall be punished with death or imprisonment for life..."
+    )
+    dumped = dto_with_text.model_dump()
+    assert dumped["source_text"] == "Whoever commits murder shall be punished with death or imprisonment for life..."
+
+    dto_without_text = StatutoryCitationDTO(
+        citation_text="[BNS s.103]",
+        citation_type=CitationType.STATUTORY,
+        is_verified=True,
+        source_id="bns_s103_p1",
+        act="Bharatiya Nyaya Sanhita, 2023",
+        act_short="BNS",
+        section="103",
+        section_title="Punishment for murder"
+    )
+    dumped_none = dto_without_text.model_dump()
+    assert dumped_none["source_text"] is None

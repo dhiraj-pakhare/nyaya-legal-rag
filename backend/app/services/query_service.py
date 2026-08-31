@@ -227,7 +227,8 @@ class LegalQueryService:
                         page_end=cv.page_end,
                         document_id=doc_id,
                         filename=cv.section_title or "user_document.pdf",
-                        page_number=cv.page_start
+                        page_number=cv.page_start,
+                        source_text=getattr(cv, "source_text", None)
                     )
                 )
             elif "Second Schedule" in cv.citation_text or "Form" in cv.citation_text:
@@ -245,7 +246,8 @@ class LegalQueryService:
                         page_start=cv.page_start,
                         page_end=cv.page_end,
                         form_number=f_num,
-                        form_title=cv.section_title
+                        form_title=cv.section_title,
+                        source_text=getattr(cv, "source_text", None)
                     )
                 )
             else:
@@ -260,7 +262,8 @@ class LegalQueryService:
                         act=cv.act,
                         act_short=cv.act_short,
                         section=cv.section,
-                        section_title=cv.section_title
+                        section_title=cv.section_title,
+                        source_text=getattr(cv, "source_text", None)
                     )
                 )
 

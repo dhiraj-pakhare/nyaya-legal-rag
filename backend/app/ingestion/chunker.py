@@ -38,8 +38,9 @@ class StatutoryChunker:
         
         # Rule 1: Section is the atomic unit.
         # If the section text is within max size OR has no subsections to split, keep whole.
+        act_prefix = section.act_short.strip().lower()
         if len(section.raw_text) <= self.max_chunk_chars or not section.subsections:
-            chunk_id = f"bnss-s{section.section_number}-001"
+            chunk_id = f"{act_prefix}-s{section.section_number}-001"
             chunk = StatutoryChunk(
                 act=section.act,
                 act_short=section.act_short,
@@ -77,7 +78,7 @@ class StatutoryChunker:
             if current_char_count + sub_len > self.max_chunk_chars and current_sub_texts:
                 # Flush current sub-chunk
                 chunk_text = header_prefix + "\n\n".join(current_sub_texts)
-                chunk_id = f"bnss-s{section.section_number}-{chunk_idx:03d}"
+                chunk_id = f"{act_prefix}-s{section.section_number}-{chunk_idx:03d}"
                 chunks.append(StatutoryChunk(
                     act=section.act,
                     act_short=section.act_short,
@@ -110,7 +111,7 @@ class StatutoryChunker:
         if current_sub_texts:
             # Check if standalone provisos/explanations exist and attach to last chunk if not already present
             chunk_text = header_prefix + "\n\n".join(current_sub_texts)
-            chunk_id = f"bnss-s{section.section_number}-{chunk_idx:03d}"
+            chunk_id = f"{act_prefix}-s{section.section_number}-{chunk_idx:03d}"
             chunks.append(StatutoryChunk(
                 act=section.act,
                 act_short=section.act_short,

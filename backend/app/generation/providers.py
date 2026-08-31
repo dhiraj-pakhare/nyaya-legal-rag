@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 import json
 import logging
+import re
 import time
 from typing import Any, Dict, Generator, List, Optional
 import urllib.error
@@ -86,6 +87,7 @@ class OllamaProvider(LLMProvider):
             "model": self.model,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
             "stream": False,
+            "think": False,
             "options": {
                 "temperature": kwargs.get("temperature", self.temperature),
                 "num_predict": kwargs.get("max_tokens", self.max_tokens)
@@ -106,7 +108,9 @@ class OllamaProvider(LLMProvider):
                     resp_data = json.loads(resp.read().decode("utf-8"))
                     latency_ms = (time.perf_counter() - start_time) * 1000
                     
-                    content = resp_data.get("message", {}).get("content", "")
+                    raw_content = resp_data.get("message", {}).get("content", "") or ""
+                    # Strip <think>...</think> blocks if present in content
+                    content = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
                     prompt_tokens = resp_data.get("prompt_eval_count")
                     completion_tokens = resp_data.get("eval_count")
                     total_tokens = None
@@ -144,6 +148,7 @@ class OllamaProvider(LLMProvider):
             "model": self.model,
             "messages": [{"role": m.role, "content": m.content} for m in messages],
             "stream": True,
+            "think": False,
             "options": {
                 "temperature": kwargs.get("temperature", self.temperature),
                 "num_predict": kwargs.get("max_tokens", self.max_tokens)
@@ -158,12 +163,47 @@ class OllamaProvider(LLMProvider):
 
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                in_think = False
+                buffer = ""
                 for line in resp:
                     if line:
                         chunk = json.loads(line.decode("utf-8"))
-                        content = chunk.get("message", {}).get("content", "")
-                        if content:
-                            yield content
+                        # Never yield internal thinking tokens
+                        content_piece = chunk.get("message", {}).get("content", "")
+                        if not content_piece:
+                            continue
+
+                        buffer += content_piece
+                        while buffer:
+                            if in_think:
+                                if "</think>" in buffer:
+                                    _, buffer = buffer.split("</think>", 1)
+                                    in_think = False
+                                else:
+                                    buffer = ""
+                                    break
+                            else:
+                                if "<think>" in buffer:
+                                    pre, post = buffer.split("<think>", 1)
+                                    if pre:
+                                        yield pre
+                                    buffer = post
+                                    in_think = True
+                                else:
+                                    prefix_match = False
+                                    for i in range(1, len("<think>")):
+                                        if buffer.endswith("<think>"[:i]):
+                                            to_yield = buffer[:-i]
+                                            if to_yield:
+                                                yield to_yield
+                                            buffer = buffer[-i:]
+                                            prefix_match = True
+                                            break
+                                    if not prefix_match:
+                                        yield buffer
+                                        buffer = ""
+                if not in_think and buffer:
+                    yield buffer
         except Exception as e:
             raise LLMProviderError(f"Ollama streaming failed: {str(e)}") from e
 

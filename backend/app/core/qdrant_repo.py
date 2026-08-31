@@ -24,6 +24,36 @@ def chunk_id_to_point_id(chunk_id: str) -> str:
     return str(uuid.uuid5(NYAYA_NAMESPACE, f"nyaya://chunk/{chunk_id}"))
 
 
+_SHARED_QDRANT_CLIENT: Optional[QdrantClient] = None
+
+
+def get_shared_qdrant_client(path: Optional[str] = None, url: Optional[str] = None) -> QdrantClient:
+    """Singleton provider for QdrantClient to prevent file lock collisions in local embedded mode."""
+    global _SHARED_QDRANT_CLIENT
+    if _SHARED_QDRANT_CLIENT is None:
+        target_path = path or settings.qdrant_path
+        if target_path:
+            logger.info(f"Initializing shared embedded QdrantClient with storage at '{target_path}'")
+            try:
+                _SHARED_QDRANT_CLIENT = QdrantClient(path=target_path, force_disable_check_same_thread=True)
+            except RuntimeError as e:
+                if "already accessed" in str(e):
+                    import os, tempfile, shutil
+                    logger.warning(f"Storage folder '{target_path}' is locked by running backend. Creating isolated snapshot for test execution.")
+                    test_tmp_dir = os.path.join(tempfile.gettempdir(), "nyaya_qdrant_test_storage")
+                    if os.path.exists(test_tmp_dir):
+                        shutil.rmtree(test_tmp_dir, ignore_errors=True)
+                    shutil.copytree(target_path, test_tmp_dir, ignore=shutil.ignore_patterns("*.lock"))
+                    _SHARED_QDRANT_CLIENT = QdrantClient(path=test_tmp_dir, force_disable_check_same_thread=True)
+                else:
+                    raise
+        else:
+            target_url = url or settings.qdrant_url
+            logger.info(f"Initializing shared QdrantClient connecting to '{target_url}'")
+            _SHARED_QDRANT_CLIENT = QdrantClient(url=target_url, api_key=settings.qdrant_api_key or None)
+    return _SHARED_QDRANT_CLIENT
+
+
 class QdrantRepository:
     """Repository managing Qdrant vector collection lifecycle, upsert, and search."""
 
@@ -44,7 +74,9 @@ class QdrantRepository:
         elif in_memory:
             self.client = QdrantClient(location=":memory:")
         elif path is not None:
-            self.client = QdrantClient(path=path)
+            self.client = get_shared_qdrant_client(path=path)
+        elif settings.qdrant_path:
+            self.client = get_shared_qdrant_client(path=settings.qdrant_path)
         else:
             q_url = url or settings.qdrant_url
             self.client = QdrantClient(url=q_url, api_key=settings.qdrant_api_key or None)

@@ -43,7 +43,15 @@ class StatutoryGenerationPipeline:
         context_builder: Optional[StatutoryContextBuilder] = None,
         citation_validator: Optional[CitationValidator] = None
     ):
-        self.retrieval_pipeline = retrieval_pipeline
+        if retrieval_pipeline is not None:
+            self.retrieval_pipeline = retrieval_pipeline
+        else:
+            try:
+                from backend.app.retrieval.pipeline import get_hybrid_retrieval_pipeline
+                self.retrieval_pipeline = get_hybrid_retrieval_pipeline()
+            except Exception as e:
+                logger.warning(f"Could not lazily initialize default hybrid retrieval pipeline: {e}")
+                self.retrieval_pipeline = None
         self.llm_provider = llm_provider or get_llm_provider()
         self.context_builder = context_builder or StatutoryContextBuilder()
         self.citation_validator = citation_validator or CitationValidator()

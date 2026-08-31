@@ -54,8 +54,10 @@ class UserDocumentRAGPipeline:
         context_builder: Optional[MultiSourceContextBuilder] = None,
         citation_validator: Optional[DualCitationValidator] = None
     ):
-        self.repository = repository or UserDocumentRepository()
-        self.statutory_pipeline = statutory_pipeline or HybridRetrievalPipeline(chunks=[])
+        from backend.app.document_rag.repository import get_user_doc_repository
+        from backend.app.retrieval.pipeline import get_hybrid_retrieval_pipeline
+        self.repository = repository or get_user_doc_repository()
+        self.statutory_pipeline = statutory_pipeline or get_hybrid_retrieval_pipeline()
         self.embedding_model = embedding_model or get_embedding_model()
         self.document_retriever = document_retriever or UserDocumentRetriever(
             repository=self.repository,

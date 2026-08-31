@@ -54,8 +54,15 @@ ILLUSTRATION_RE = re.compile(r'^(Illustration(?:\s+[a-z]|\s*\([a-z]\))?\s*[.—]
 class StructureDetector:
     """Detects and parses statutory structure across Gazette pages."""
 
-    def __init__(self, pages_data: List[PageLayoutData]):
+    def __init__(
+        self,
+        pages_data: List[PageLayoutData],
+        act: str = ActIdentity.BNSS.value,
+        act_short: str = ActShortName.BNSS.value
+    ):
         self.pages_data = pages_data
+        self.act = act
+        self.act_short = act_short
 
     def detect_structure(self) -> StatutoryDocument:
         """Parse all substantive pages into a structured StatutoryDocument AST."""
@@ -100,8 +107,8 @@ class StructureDetector:
             ))
             
         return StatutoryDocument(
-            act=ActIdentity.BNSS.value,
-            act_short=ActShortName.BNSS.value,
+            act=self.act,
+            act_short=self.act_short,
             chapters=chapters,
             sections=sections
         )
@@ -372,13 +379,13 @@ class StructureDetector:
                 ))
                 
         # Extract normalized cross-references
-        refs = extract_cross_references(full_text, default_act_short="BNSS")
+        refs = extract_cross_references(full_text, default_act_short=self.act_short)
         
         return Section(
             section_number=raw_sec['section_number'],
             section_title=raw_sec['section_title'],
-            act=ActIdentity.BNSS.value,
-            act_short=ActShortName.BNSS.value,
+            act=self.act,
+            act_short=self.act_short,
             chapter_number=raw_sec['chapter_number'],
             chapter_title=raw_sec['chapter_title'],
             page_start=page_start,

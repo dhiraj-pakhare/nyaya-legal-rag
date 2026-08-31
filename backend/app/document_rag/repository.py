@@ -8,7 +8,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
 
 from backend.app.core.config import settings
-from backend.app.core.qdrant_repo import NYAYA_NAMESPACE
+from backend.app.core.qdrant_repo import NYAYA_NAMESPACE, get_shared_qdrant_client
 from backend.app.document_rag.models import (
     DocumentNotFoundError,
     SecurityScopeError,
@@ -39,14 +39,16 @@ class UserDocumentRepository:
     ):
         self.collection_name = collection_name
         self.vector_dim = vector_dim
-        self._doc_registry: Dict[str, UserDocument] = {}  # In-memory document registry: doc_id -> UserDocument
+        self._doc_registry: Dict[str, UserDocument] = {}
 
         if client is not None:
             self.client = client
         elif in_memory:
             self.client = QdrantClient(location=":memory:")
         elif path is not None:
-            self.client = QdrantClient(path=path)
+            self.client = get_shared_qdrant_client(path=path)
+        elif settings.qdrant_path:
+            self.client = get_shared_qdrant_client(path=settings.qdrant_path)
         else:
             q_url = url or settings.qdrant_url
             self.client = QdrantClient(url=q_url, api_key=settings.qdrant_api_key or None)

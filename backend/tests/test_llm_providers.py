@@ -108,6 +108,82 @@ def test_ollama_provider_http_success(mock_urlopen):
 
 
 @patch("urllib.request.urlopen")
+def test_ollama_provider_thinking_field_never_returned_as_content(mock_urlopen):
+    """Verify that Ollama message['thinking'] is NEVER returned as answer content."""
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps({
+        "message": {
+            "content": "",
+            "thinking": "Internal reasoning about rules, cannot fabricate, 303 vs 303(2)"
+        },
+        "prompt_eval_count": 50,
+        "eval_count": 40
+    }).encode("utf-8")
+    mock_resp.__enter__.return_value = mock_resp
+    mock_urlopen.return_value = mock_resp
+
+    provider = OllamaProvider(model="qwen3:4b", base_url="http://localhost:11434")
+    resp = provider.generate([LLMMessage(role="user", content="What is Section 303(2)?")])
+
+    assert resp.content == ""
+    assert "Internal reasoning" not in resp.content
+
+
+@patch("urllib.request.urlopen")
+def test_ollama_provider_think_tags_stripped_from_content(mock_urlopen):
+    """Verify that <think>...</think> blocks inside message content are stripped."""
+    mock_resp = MagicMock()
+    mock_resp.read.return_value = json.dumps({
+        "message": {
+            "content": "<think>\nDebating Section 303 vs 303(2)...\n</think>\n\nAccording to [BNS s.303(2)], theft is cognizable."
+        },
+        "prompt_eval_count": 60,
+        "eval_count": 50
+    }).encode("utf-8")
+    mock_resp.__enter__.return_value = mock_resp
+    mock_urlopen.return_value = mock_resp
+
+    provider = OllamaProvider(model="qwen3:4b", base_url="http://localhost:11434")
+    resp = provider.generate([LLMMessage(role="user", content="What is Section 303(2)?")])
+
+    assert "<think>" not in resp.content
+    assert "</think>" not in resp.content
+    assert "Debating Section 303" not in resp.content
+    assert resp.content == "According to [BNS s.303(2)], theft is cognizable."
+
+
+@patch("urllib.request.urlopen")
+def test_ollama_provider_streaming_does_not_emit_thinking(mock_urlopen):
+    """Verify that streamed thinking chunks and <think>...</think> blocks are not yielded."""
+    # Simulate stream chunks:
+    # 1. Thinking chunk in message.thinking
+    # 2. <think> tag in content
+    # 3. internal thought in content
+    # 4. </think> tag in content
+    # 5. actual answer token in content
+    lines = [
+        json.dumps({"message": {"content": "", "thinking": "Internal thought 1"}}).encode("utf-8") + b"\n",
+        json.dumps({"message": {"content": "<think>Internal "}}).encode("utf-8") + b"\n",
+        json.dumps({"message": {"content": "monologue</think>Grounded "}}).encode("utf-8") + b"\n",
+        json.dumps({"message": {"content": "answer [BNS s.303(2)]"}}).encode("utf-8") + b"\n",
+    ]
+    mock_resp = MagicMock()
+    mock_resp.__iter__.return_value = iter(lines)
+    mock_resp.__enter__.return_value = mock_resp
+    mock_urlopen.return_value = mock_resp
+
+    provider = OllamaProvider(model="qwen3:4b", base_url="http://localhost:11434")
+    tokens = list(provider.stream([LLMMessage(role="user", content="What is Section 303(2)?")]))
+
+    combined = "".join(tokens)
+    assert "Internal thought 1" not in combined
+    assert "Internal monologue" not in combined
+    assert "<think>" not in combined
+    assert "</think>" not in combined
+    assert "Grounded answer [BNS s.303(2)]" in combined
+
+
+@patch("urllib.request.urlopen")
 def test_openai_provider_http_success(mock_urlopen):
     """Test OpenAI-compatible provider executes HTTP POST with auth headers."""
     mock_resp = MagicMock()
