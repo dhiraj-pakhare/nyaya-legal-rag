@@ -30,10 +30,26 @@ const API_BASE = VITE_API_BASE ? `${VITE_API_BASE}/api/v1` : '/api/v1';
 
 // ─── Auth Token Storage ────────────────────────────────────────────────────────
 
-let _authToken: string | null = null;
+const AUTH_TOKEN_KEY = 'nyaya_auth_token';
+
+function getInitialToken(): string | null {
+  if (typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined') {
+    return window.sessionStorage.getItem(AUTH_TOKEN_KEY);
+  }
+  return null;
+}
+
+let _authToken: string | null = getInitialToken();
 
 export function setAuthToken(token: string | null): void {
   _authToken = token;
+  if (typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined') {
+    if (token) {
+      window.sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+    } else {
+      window.sessionStorage.removeItem(AUTH_TOKEN_KEY);
+    }
+  }
 }
 
 export function getAuthToken(): string | null {
