@@ -49,11 +49,8 @@ class HybridRetrievalPipeline:
         
         # Dense Retriever
         if qdrant_repo is None:
-            qdrant_repo = QdrantRepository(
-                path="./qdrant_storage",
-                collection_name=settings.qdrant_collection,
-                vector_dim=settings.embedding_dimension
-            )
+            from backend.app.core.qdrant_repo import get_qdrant_repository
+            qdrant_repo = get_qdrant_repository()
         self.dense_retriever = DenseRetriever(
             repo=qdrant_repo,
             embedding_model=embedding_model or get_embedding_model()
@@ -273,21 +270,24 @@ def get_statutory_chunks() -> List[StatutoryChunk]:
                 from backend.app.core.qdrant_repo import get_qdrant_repository
                 repo = get_qdrant_repository()
 
-                records = []
+                hydrated: List[StatutoryChunk] = []
                 scroll_offset = None
                 while True:
                     batch, scroll_offset = repo.client.scroll(
                         collection_name=repo.collection_name,
-                        limit=500,
+                        limit=250,
                         offset=scroll_offset,
                         with_payload=True,
                         with_vectors=False
                     )
-                    records.extend(batch)
+                    for r in batch:
+                        if r.payload:
+                            hydrated.append(StatutoryChunk(**r.payload))
+                    del batch
                     if scroll_offset is None:
                         break
 
-                hydrated = [StatutoryChunk(**r.payload) for r in records if r.payload]
+                import gc; gc.collect()
                 expected_count = 1027
                 actual_count = len(hydrated)
 

@@ -185,3 +185,18 @@ def test_ingest_cli_api_key_argument(monkeypatch):
     parser2.add_argument("--qdrant-api-key", default=os.getenv("QDRANT_API_KEY", None))
     args2 = parser2.parse_args([])
     assert args2.qdrant_api_key == "env-fallback-key"
+
+
+def test_shared_qdrant_client_singleton(monkeypatch):
+    """Verify get_shared_qdrant_client returns the same instance across invocations."""
+    from unittest.mock import MagicMock, patch
+    from backend.app.core.qdrant_repo import get_shared_qdrant_client, reset_shared_qdrant_client
+
+    mock_client = MagicMock()
+    with patch("backend.app.core.qdrant_repo.QdrantClient", return_value=mock_client) as mock_cls:
+        reset_shared_qdrant_client()
+        client1 = get_shared_qdrant_client()
+        client2 = get_shared_qdrant_client()
+        assert client1 is client2
+        assert mock_cls.call_count == 1
+        reset_shared_qdrant_client()

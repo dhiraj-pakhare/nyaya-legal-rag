@@ -13,9 +13,17 @@ import time
 import logging
 from typing import List, Optional
 import numpy as np
+import torch
 from sentence_transformers import SentenceTransformer
 
 from backend.app.core.config import settings
+
+# Restrict intra-op CPU threads to avoid excessive memory arena allocation in containerized runtimes
+if hasattr(torch, "set_num_threads"):
+    try:
+        torch.set_num_threads(min(2, torch.get_num_threads()))
+    except Exception:
+        pass
 
 logger = logging.getLogger("nyaya.embeddings")
 
@@ -58,13 +66,14 @@ class EmbeddingModel:
             return np.empty((0, self.dimension), dtype=np.float32)
             
         start_t = time.perf_counter()
-        embeddings = self.model.encode(
-            texts,
-            batch_size=batch_size,
-            show_progress_bar=show_progress,
-            normalize_embeddings=self.normalize_embeddings,
-            convert_to_numpy=True
-        )
+        with torch.inference_mode():
+            embeddings = self.model.encode(
+                texts,
+                batch_size=batch_size,
+                show_progress_bar=show_progress,
+                normalize_embeddings=self.normalize_embeddings,
+                convert_to_numpy=True
+            )
         duration = time.perf_counter() - start_t
         throughput = len(texts) / max(duration, 0.001)
         
@@ -81,11 +90,12 @@ class EmbeddingModel:
         on queries to align query space with passage representation space.
         """
         prefixed_query = f"{self.query_instruction}{query.strip()}"
-        embedding = self.model.encode(
-            prefixed_query,
-            normalize_embeddings=self.normalize_embeddings,
-            convert_to_numpy=True
-        )
+        with torch.inference_mode():
+            embedding = self.model.encode(
+                prefixed_query,
+                normalize_embeddings=self.normalize_embeddings,
+                convert_to_numpy=True
+            )
         return embedding.tolist()
 
 

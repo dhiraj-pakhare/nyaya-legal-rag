@@ -28,11 +28,11 @@ _SHARED_QDRANT_CLIENT: Optional[QdrantClient] = None
 
 
 def get_shared_qdrant_client(path: Optional[str] = None, url: Optional[str] = None, api_key: Optional[str] = None) -> QdrantClient:
-    """Singleton provider for QdrantClient to prevent file lock collisions in local embedded mode."""
+    """Singleton provider for QdrantClient to prevent duplicate connections and file lock collisions."""
     global _SHARED_QDRANT_CLIENT
-    if _SHARED_QDRANT_CLIENT is None:
-        target_path = path or settings.qdrant_path
-        if target_path:
+    target_path = path or settings.qdrant_path
+    if target_path:
+        if _SHARED_QDRANT_CLIENT is None:
             logger.info(f"Initializing shared embedded QdrantClient with storage at '{target_path}'")
             try:
                 _SHARED_QDRANT_CLIENT = QdrantClient(path=target_path, force_disable_check_same_thread=True)
@@ -47,12 +47,23 @@ def get_shared_qdrant_client(path: Optional[str] = None, url: Optional[str] = No
                     _SHARED_QDRANT_CLIENT = QdrantClient(path=test_tmp_dir, force_disable_check_same_thread=True)
                 else:
                     raise
-        else:
-            target_url = url or settings.qdrant_url
-            effective_key = api_key if api_key is not None else (settings.qdrant_api_key or None)
+        return _SHARED_QDRANT_CLIENT
+    else:
+        target_url = url or settings.qdrant_url
+        effective_key = api_key if api_key is not None else (settings.qdrant_api_key or None)
+        if url is not None or api_key is not None:
+            # Custom client explicitly requested by caller / test harness
+            return QdrantClient(url=target_url, api_key=effective_key)
+        if _SHARED_QDRANT_CLIENT is None:
             logger.info(f"Initializing shared QdrantClient connecting to '{target_url}'")
             _SHARED_QDRANT_CLIENT = QdrantClient(url=target_url, api_key=effective_key)
-    return _SHARED_QDRANT_CLIENT
+        return _SHARED_QDRANT_CLIENT
+
+
+def reset_shared_qdrant_client() -> None:
+    """Reset the shared singleton QdrantClient instance (useful for testing)."""
+    global _SHARED_QDRANT_CLIENT
+    _SHARED_QDRANT_CLIENT = None
 
 
 class QdrantRepository:
@@ -83,8 +94,7 @@ class QdrantRepository:
         elif settings.qdrant_path:
             self.client = get_shared_qdrant_client(path=settings.qdrant_path)
         else:
-            q_url = settings.qdrant_url
-            self.client = QdrantClient(url=q_url, api_key=effective_api_key)
+            self.client = get_shared_qdrant_client()
             
         self.ensure_collection()
 

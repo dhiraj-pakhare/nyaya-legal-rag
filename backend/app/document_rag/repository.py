@@ -52,8 +52,7 @@ class UserDocumentRepository:
         elif settings.qdrant_path:
             self.client = get_shared_qdrant_client(path=settings.qdrant_path)
         else:
-            q_url = settings.qdrant_url
-            self.client = QdrantClient(url=q_url, api_key=settings.qdrant_api_key or None)
+            self.client = get_shared_qdrant_client()
 
         self.ensure_collection()
 

@@ -6,10 +6,18 @@ import time
 from typing import List, Optional
 
 import numpy as np
+import torch
 from sentence_transformers import CrossEncoder
 
 from backend.app.core.config import settings
 from backend.app.retrieval.models import RetrievedDocument
+
+# Restrict intra-op CPU threads to avoid excessive memory arena allocation in containerized runtimes
+if hasattr(torch, "set_num_threads"):
+    try:
+        torch.set_num_threads(min(2, torch.get_num_threads()))
+    except Exception:
+        pass
 
 logger = logging.getLogger("nyaya.retrieval.reranker")
 
@@ -71,7 +79,8 @@ class CrossEncoderReranker:
             pairs.append((query, context_header))
 
         start_t = time.perf_counter()
-        raw_scores = self.model.predict(pairs)
+        with torch.inference_mode():
+            raw_scores = self.model.predict(pairs)
         duration_ms = (time.perf_counter() - start_t) * 1000
 
         # Pair scores with original document objects

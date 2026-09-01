@@ -51,8 +51,19 @@ class LegalQueryService:
         forms_pipeline: Optional[StatutoryFormPipeline] = None
     ):
         self.statutory_pipeline = statutory_pipeline or get_generation_pipeline()
-        self.user_doc_pipeline = user_doc_pipeline or get_user_doc_rag_pipeline()
+        self._user_doc_pipeline = user_doc_pipeline
         self.forms_pipeline = forms_pipeline or StatutoryFormPipeline(registry=get_form_registry())
+
+    @property
+    def user_doc_pipeline(self) -> UserDocumentRAGPipeline:
+        """Lazily initialize UserDocumentRAGPipeline to conserve RAM when serving statutory queries."""
+        if self._user_doc_pipeline is None:
+            self._user_doc_pipeline = get_user_doc_rag_pipeline()
+        return self._user_doc_pipeline
+
+    @user_doc_pipeline.setter
+    def user_doc_pipeline(self, pipeline: Optional[UserDocumentRAGPipeline]) -> None:
+        self._user_doc_pipeline = pipeline
 
     def execute_query(
         self,
@@ -133,7 +144,13 @@ class LegalQueryService:
             active_document_ids=active_doc_ids
         )
 
-        has_documents = len(active_doc_ids) > 0 or self.user_doc_pipeline.repository.count_user_chunks(effective_scope) > 0
+        has_documents = False
+        if len(active_doc_ids) > 0:
+            has_documents = True
+        elif len(scope.active_document_ids) > 0:
+            has_documents = self.user_doc_pipeline.repository.count_user_chunks(effective_scope) > 0
+        elif self._user_doc_pipeline is not None:
+            has_documents = self.user_doc_pipeline.repository.count_user_chunks(effective_scope) > 0
 
         if has_documents:
             # Multi-tenant document RAG pipeline (handles statutory, document, and combined)
