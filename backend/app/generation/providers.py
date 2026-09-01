@@ -97,7 +97,10 @@ class OllamaProvider(LLMProvider):
         req = urllib.request.Request(
             url,
             data=data,
-            headers={"Content-Type": "application/json"}
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "NyayaLegalRAG/1.0 (Ollama Client)"
+            }
         )
 
         last_err: Optional[Exception] = None
@@ -158,7 +161,10 @@ class OllamaProvider(LLMProvider):
         req = urllib.request.Request(
             url,
             data=data,
-            headers={"Content-Type": "application/json"}
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "NyayaLegalRAG/1.0 (Ollama Client)"
+            }
         )
 
         try:
@@ -228,8 +234,8 @@ class OpenAICompatibleProvider(LLMProvider):
             timeout=timeout,
             max_retries=max_retries
         )
-        self.base_url = base_url.rstrip("/")
-        self.api_key = api_key
+        self.base_url = (base_url or "").rstrip("/")
+        self.api_key = (api_key or "").strip().strip("'\"")
         if not self.base_url:
             raise LLMConfigurationError("OpenAI-compatible base URL cannot be empty")
 
@@ -243,9 +249,15 @@ class OpenAICompatibleProvider(LLMProvider):
             "stream": False
         }
         data = json.dumps(payload).encode("utf-8")
-        headers = {"Content-Type": "application/json"}
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "NyayaLegalRAG/1.0 (OpenAI-Compatible Client)"
+        }
         if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
+            if self.api_key.startswith("Bearer "):
+                headers["Authorization"] = self.api_key
+            else:
+                headers["Authorization"] = f"Bearer {self.api_key}"
 
         req = urllib.request.Request(url, data=data, headers=headers)
 
@@ -258,11 +270,20 @@ class OpenAICompatibleProvider(LLMProvider):
                     latency_ms = (time.perf_counter() - start_time) * 1000
                     
                     choice = resp_data.get("choices", [{}])[0]
-                    content = choice.get("message", {}).get("content", "")
+                    message = choice.get("message", {})
+                    # Handle standard content or reasoning models (gpt-oss, deepseek, etc.)
+                    raw_content = message.get("content") or ""
+                    if not raw_content and message.get("reasoning_content"):
+                        raw_content = message.get("reasoning_content") or ""
+                    # Strip <think>...</think> blocks if present in content
+                    content = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
+
                     usage = resp_data.get("usage", {})
                     prompt_tokens = usage.get("prompt_tokens")
                     completion_tokens = usage.get("completion_tokens")
                     total_tokens = usage.get("total_tokens")
+                    if total_tokens is None and prompt_tokens is not None and completion_tokens is not None:
+                        total_tokens = prompt_tokens + completion_tokens
 
                     return LLMResponse(
                         content=content,
@@ -299,9 +320,15 @@ class OpenAICompatibleProvider(LLMProvider):
             "stream": True
         }
         data = json.dumps(payload).encode("utf-8")
-        headers = {"Content-Type": "application/json"}
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "NyayaLegalRAG/1.0 (OpenAI-Compatible Client)"
+        }
         if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
+            if self.api_key.startswith("Bearer "):
+                headers["Authorization"] = self.api_key
+            else:
+                headers["Authorization"] = f"Bearer {self.api_key}"
 
         req = urllib.request.Request(url, data=data, headers=headers)
         try:
@@ -314,7 +341,7 @@ class OpenAICompatibleProvider(LLMProvider):
                             break
                         chunk = json.loads(body)
                         delta = chunk.get("choices", [{}])[0].get("delta", {})
-                        content = delta.get("content", "")
+                        content = delta.get("content") or delta.get("reasoning_content") or ""
                         if content:
                             yield content
         except Exception as e:

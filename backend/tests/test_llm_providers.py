@@ -206,3 +206,72 @@ def test_openai_provider_http_success(mock_urlopen):
     assert resp.prompt_tokens == 120
     assert resp.completion_tokens == 40
     assert resp.total_tokens == 160
+
+    # Verify custom User-Agent and Authorization headers were sent
+    req_arg = mock_urlopen.call_args[0][0]
+    assert req_arg.get_header("User-agent") == "NyayaLegalRAG/1.0 (OpenAI-Compatible Client)"
+    assert req_arg.get_header("Authorization") == "Bearer sk-test-key"
+
+
+@patch("urllib.request.urlopen")
+def test_openai_provider_reasoning_content_and_think_tags(mock_urlopen):
+    """Verify OpenAI-compatible provider handles reasoning_content and strips <think> tags."""
+    # Test case 1: Reasoning content fallback when content is empty/None
+    mock_resp1 = MagicMock()
+    mock_resp1.read.return_value = json.dumps({
+        "choices": [{"message": {"content": None, "reasoning_content": "Under [BNS s.103], murder is defined."}}],
+        "usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}
+    }).encode("utf-8")
+    mock_resp1.__enter__.return_value = mock_resp1
+
+    # Test case 2: <think> tags stripped from content
+    mock_resp2 = MagicMock()
+    mock_resp2.read.return_value = json.dumps({
+        "choices": [{"message": {"content": "<think>Deliberating statutory text</think>Under [BNS s.103], murder is defined."}}],
+        "usage": {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}
+    }).encode("utf-8")
+    mock_resp2.__enter__.return_value = mock_resp2
+
+    mock_urlopen.side_effect = [mock_resp1, mock_resp2]
+
+    provider = OpenAICompatibleProvider(
+        model="openai/gpt-oss-120b",
+        base_url="https://api.groq.com/openai/v1",
+        api_key="gsk_test_key"
+    )
+
+    # Call 1: reasoning_content
+    resp1 = provider.generate([LLMMessage(role="user", content="Define murder.")])
+    assert resp1.content == "Under [BNS s.103], murder is defined."
+
+    # Call 2: <think> tags stripped
+    resp2 = provider.generate([LLMMessage(role="user", content="Define murder.")])
+    assert "<think>" not in resp2.content
+    assert "</think>" not in resp2.content
+    assert resp2.content == "Under [BNS s.103], murder is defined."
+
+
+@patch("urllib.request.urlopen")
+def test_openai_provider_streaming_with_user_agent(mock_urlopen):
+    """Verify OpenAI-compatible streaming sends User-Agent and handles delta content."""
+    lines = [
+        b"data: " + json.dumps({"choices": [{"delta": {"content": "Under "}}]}).encode("utf-8") + b"\n",
+        b"data: " + json.dumps({"choices": [{"delta": {"reasoning_content": "[BNS s.103]"}}]}).encode("utf-8") + b"\n",
+        b"data: [DONE]\n"
+    ]
+    mock_resp = MagicMock()
+    mock_resp.__iter__.return_value = iter(lines)
+    mock_resp.__enter__.return_value = mock_resp
+    mock_urlopen.return_value = mock_resp
+
+    provider = OpenAICompatibleProvider(
+        model="openai/gpt-oss-120b",
+        base_url="https://api.groq.com/openai/v1",
+        api_key="gsk_test_key"
+    )
+
+    tokens = list(provider.stream([LLMMessage(role="user", content="Define murder.")]))
+    assert "".join(tokens) == "Under [BNS s.103]"
+
+    req_arg = mock_urlopen.call_args[0][0]
+    assert req_arg.get_header("User-agent") == "NyayaLegalRAG/1.0 (OpenAI-Compatible Client)"
