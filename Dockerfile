@@ -50,10 +50,15 @@ COPY --from=builder /opt/venv /opt/venv
 # Prepare writable runtime data directories with non-root ownership
 RUN mkdir -p /app/data/forms && chown -R appuser:appgroup /app
 
-# Copy application source code and scripts (excluding raw PDFs, storage, and secrets)
+# Copy application source code, scripts, and authoritative statutory PDF
 COPY --chown=appuser:appgroup backend/ /app/backend/
 COPY --chown=appuser:appgroup scripts/ /app/scripts/
 COPY --chown=appuser:appgroup data/forms/forms_manifest.json /app/data/forms/forms_manifest.json
+COPY --chown=appuser:appgroup ["BNS bare act 2023.pdf", "/app/BNS bare act 2023.pdf"]
+
+# Pre-generate 58 statutory form PDFs at build time into /app/data/forms/
+RUN python scripts/extract_forms.py --pdf-path "/app/BNS bare act 2023.pdf" --output-dir "/app/data/forms" && \
+    chown -R appuser:appgroup /app/data/forms
 
 USER appuser
 

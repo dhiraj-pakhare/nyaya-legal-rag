@@ -8,7 +8,7 @@
 
 # Source PDFs & Raw Documents (Per assignment specification)
 *.pdf
-BNS bare act 2023.pdf
+!BNS bare act 2023.pdf
 DhronAI-Technical-Assignment.pdf
 data/raw/
 data/forms/*

@@ -41,13 +41,70 @@ class StatutoryFormsService:
         self,
         registry: Optional[StatutoryFormRegistry] = None,
         forms_dir: str = "data/forms",
-        source_pdf_path: str = "BNS bare act 2023.pdf"
+        source_pdf_path: Optional[str] = None
     ):
         self.registry = registry or get_form_registry()
         self.identifier = DeterministicFormIdentifier(registry=self.registry)
         self.renderer = DeterministicFormRenderer()
         self.forms_dir = forms_dir
-        self.source_pdf_path = source_pdf_path
+        self.source_pdf_path = self.resolve_source_pdf(source_pdf_path)
+
+    @classmethod
+    def resolve_source_pdf(cls, explicit_path: Optional[str] = None) -> str:
+        """Deterministically resolve the statutory source PDF location.
+
+        Resolution order:
+        1. If explicit_path is provided by the caller:
+           - Return its absolute path if it exists on disk
+           - Otherwise return explicit_path directly (so caller's explicit path is preserved)
+        2. Configured settings.pdf_path (if exists on disk)
+        3. Environment variable PDF_PATH (if set and exists on disk)
+        4. Standard container & local workspace candidates:
+           - /app/BNS bare act 2023.pdf (Railway/Docker container root)
+           - BNS bare act 2023.pdf (Local CWD)
+           - <repo_root>/BNS bare act 2023.pdf
+           - /app/data/raw/BNS bare act 2023.pdf
+           - data/raw/BNS bare act 2023.pdf
+        5. Fallback default: settings.pdf_path or "BNS bare act 2023.pdf"
+        """
+        if explicit_path:
+            if os.path.isfile(explicit_path):
+                return os.path.abspath(explicit_path)
+            return explicit_path
+
+        try:
+            from backend.app.core.config import settings
+            if getattr(settings, "pdf_path", None) and os.path.isfile(settings.pdf_path):
+                return os.path.abspath(settings.pdf_path)
+        except Exception:
+            pass
+
+        env_path = os.getenv("PDF_PATH")
+        if env_path and os.path.isfile(env_path):
+            return os.path.abspath(env_path)
+
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+        candidates = [
+            "/app/BNS bare act 2023.pdf",
+            "BNS bare act 2023.pdf",
+            os.path.join(repo_root, "BNS bare act 2023.pdf"),
+            "/app/data/raw/BNS bare act 2023.pdf",
+            os.path.join(repo_root, "data", "raw", "BNS bare act 2023.pdf"),
+            "data/raw/BNS bare act 2023.pdf",
+        ]
+
+        for path in candidates:
+            if path and os.path.isfile(path):
+                return os.path.abspath(path)
+
+        try:
+            from backend.app.core.config import settings
+            if getattr(settings, "pdf_path", None):
+                return settings.pdf_path
+        except Exception:
+            pass
+
+        return "BNS bare act 2023.pdf"
 
     def list_forms(self, api_prefix: str = "/api/v1") -> StatutoryFormListResponseDTO:
         """List all 58 statutory forms with metadata, byte sizes, hashes, and download links."""
@@ -179,13 +236,14 @@ class StatutoryFormsService:
                 return filename, f.read()
 
         # Dynamic on-demand page extraction fallback
-        if not os.path.exists(self.source_pdf_path):
+        source_path = self.resolve_source_pdf(self.source_pdf_path)
+        if not os.path.exists(source_path):
             raise NotFoundError(
                 message="Source statutory PDF unavailable for export.",
                 details={"source_pdf": self.source_pdf_path}
             )
 
-        reader = pypdf.PdfReader(self.source_pdf_path)
+        reader = pypdf.PdfReader(source_path)
         writer = pypdf.PdfWriter()
         for p_num in range(form.page_start, form.page_end + 1):
             p_idx = p_num - 1
@@ -194,7 +252,17 @@ class StatutoryFormsService:
 
         bio = io.BytesIO()
         writer.write(bio)
-        return filename, bio.getvalue()
+        pdf_bytes = bio.getvalue()
+
+        # Cache dynamically extracted PDF to disk if directory is writable
+        try:
+            os.makedirs(self.forms_dir, exist_ok=True)
+            with open(disk_path, "wb") as f:
+                f.write(pdf_bytes)
+        except Exception as exc:
+            logger.debug(f"Could not cache extracted form to disk: {exc}")
+
+        return filename, pdf_bytes
 
     def get_bulk_forms_zip(self) -> Tuple[str, bytes]:
         """Generate a single ZIP archive containing all 58 statutory form PDFs."""
@@ -259,5 +327,7 @@ def get_forms_service() -> StatutoryFormsService:
     """Singleton provider for StatutoryFormsService."""
     global _forms_service_instance
     if _forms_service_instance is None:
-        _forms_service_instance = StatutoryFormsService()
+        _forms_service_instance = StatutoryFormsService(
+            source_pdf_path=None
+        )
     return _forms_service_instance

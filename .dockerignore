@@ -7,9 +7,10 @@
 .env.*
 !.env.example
 
-# Source PDFs (mounted at runtime)
+# Source PDFs (authoritative statutory PDF packaged into image)
 *.pdf
 **/*.pdf
+!BNS bare act 2023.pdf
 
 # Local storage and databases
 qdrant_storage
