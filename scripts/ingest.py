@@ -50,6 +50,7 @@ def run_ingestion(
     pdf_path: str = "BNS bare act 2023.pdf",
     qdrant_url: Optional[str] = None,
     qdrant_path: Optional[str] = None,
+    qdrant_api_key: Optional[str] = None,
     collection_name: str = settings.qdrant_collection,
     recreate: bool = False,
     batch_size: int = settings.embedding_batch_size,
@@ -116,6 +117,7 @@ def run_ingestion(
     qdrant_repo = QdrantRepository(
         url=qdrant_url,
         path=qdrant_path,
+        api_key=qdrant_api_key,
         collection_name=collection_name,
         vector_dim=embed_model.dimension,
         in_memory=in_memory
@@ -165,6 +167,7 @@ def main():
     parser.add_argument("--pdf", "--pdf-path", dest="pdf", default="BNS bare act 2023.pdf", help="Path to BNS/BNSS bare act PDF")
     parser.add_argument("--qdrant-url", default=None, help="Qdrant server URL (e.g. http://localhost:6333)")
     parser.add_argument("--qdrant-path", default="./qdrant_storage", help="Local directory for embedded Qdrant storage")
+    parser.add_argument("--qdrant-api-key", default=os.getenv("QDRANT_API_KEY", None), help="Qdrant API key for authentication (e.g. Qdrant Cloud)")
     parser.add_argument("--collection", default=settings.qdrant_collection, help="Qdrant collection name")
     parser.add_argument("--recreate", action="store_true", help="Force recreate collection")
     parser.add_argument("--batch-size", type=int, default=32, help="Embedding batch size")
@@ -178,6 +181,7 @@ def main():
             pdf_path=args.pdf,
             qdrant_url=args.qdrant_url,
             qdrant_path=args.qdrant_path if not args.qdrant_url and not args.in_memory else None,
+            qdrant_api_key=args.qdrant_api_key,
             collection_name=args.collection,
             recreate=args.recreate,
             batch_size=args.batch_size,

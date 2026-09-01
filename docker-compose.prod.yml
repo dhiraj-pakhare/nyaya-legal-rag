@@ -1,0 +1,97 @@
+# ==============================================================================
+# Nyaya Legal RAG — Production Container Deployment Compose Configuration
+# Target: Railway / Container Cloud Deployment (Backend API + Background Worker)
+#
+# Connects to:
+# - Managed Qdrant Cloud (QDRANT_URL, QDRANT_API_KEY)
+# - Managed Redis (REDIS_URL)
+# - Hosted LLM API (Groq / OpenAI / Custom)
+#
+# Invariants:
+# - Zero host.docker.internal dependencies
+# - Zero localhost infrastructure dependencies
+# - Zero local bind-mounted bare act PDF dependencies
+# - Zero local named storage volumes
+# - Redis & Qdrant credentials provided exclusively via environment variables
+# ==============================================================================
+
+services:
+  # ─── Production API Gateway & Query Engine ──────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nyaya-legal-rag-api:production
+    container_name: nyaya-prod-api
+    restart: always
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - AUTH_MODE=${AUTH_MODE:-prod}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://nyaya-legal-rag.vercel.app}
+      # Managed Qdrant Cloud
+      - QDRANT_URL=${QDRANT_URL}
+      - QDRANT_COLLECTION=${QDRANT_COLLECTION:-nyaya_legal_corpus}
+      - QDRANT_USER_COLLECTION=${QDRANT_USER_COLLECTION:-nyaya_user_documents}
+      - QDRANT_API_KEY=${QDRANT_API_KEY}
+      # Managed Redis
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_HOST=${REDIS_HOST:-}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      # Hosted LLM API
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+      - LLM_MODEL=${LLM_MODEL:-llama-3.3-70b-versatile}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.groq.com/openai/v1}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.0}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-1024}
+      - LLM_TIMEOUT=${LLM_TIMEOUT:-30.0}
+      - LLM_MAX_RETRIES=${LLM_MAX_RETRIES:-2}
+      - LLM_MAX_CONTEXT_CHARS=${LLM_MAX_CONTEXT_CHARS:-8000}
+      # Embedding & Reranking
+      - EMBEDDING_DEVICE=cpu
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ─── Production Asynchronous Worker ─────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nyaya-legal-rag-worker:production
+    container_name: nyaya-prod-worker
+    command: ["python", "-m", "backend.app.workers.worker"]
+    restart: always
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - AUTH_MODE=${AUTH_MODE:-prod}
+      # Managed Qdrant Cloud
+      - QDRANT_URL=${QDRANT_URL}
+      - QDRANT_COLLECTION=${QDRANT_COLLECTION:-nyaya_legal_corpus}
+      - QDRANT_USER_COLLECTION=${QDRANT_USER_COLLECTION:-nyaya_user_documents}
+      - QDRANT_API_KEY=${QDRANT_API_KEY}
+      # Managed Redis
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_HOST=${REDIS_HOST:-}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      # Hosted LLM API
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+      - LLM_MODEL=${LLM_MODEL:-llama-3.3-70b-versatile}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.groq.com/openai/v1}
+      - LLM_API_KEY=${LLM_API_KEY}
+      # Processing Configuration
+      - EMBEDDING_DEVICE=cpu
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import os, sys, redis; r=os.getenv(\"REDIS_URL\", \"redis://localhost:6379/0\"); sys.exit(0 if redis.from_url(r).ping() else 1)'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

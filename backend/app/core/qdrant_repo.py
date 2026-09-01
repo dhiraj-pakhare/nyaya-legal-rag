@@ -27,7 +27,7 @@ def chunk_id_to_point_id(chunk_id: str) -> str:
 _SHARED_QDRANT_CLIENT: Optional[QdrantClient] = None
 
 
-def get_shared_qdrant_client(path: Optional[str] = None, url: Optional[str] = None) -> QdrantClient:
+def get_shared_qdrant_client(path: Optional[str] = None, url: Optional[str] = None, api_key: Optional[str] = None) -> QdrantClient:
     """Singleton provider for QdrantClient to prevent file lock collisions in local embedded mode."""
     global _SHARED_QDRANT_CLIENT
     if _SHARED_QDRANT_CLIENT is None:
@@ -49,8 +49,9 @@ def get_shared_qdrant_client(path: Optional[str] = None, url: Optional[str] = No
                     raise
         else:
             target_url = url or settings.qdrant_url
+            effective_key = api_key if api_key is not None else (settings.qdrant_api_key or None)
             logger.info(f"Initializing shared QdrantClient connecting to '{target_url}'")
-            _SHARED_QDRANT_CLIENT = QdrantClient(url=target_url, api_key=settings.qdrant_api_key or None)
+            _SHARED_QDRANT_CLIENT = QdrantClient(url=target_url, api_key=effective_key)
     return _SHARED_QDRANT_CLIENT
 
 
@@ -61,6 +62,7 @@ class QdrantRepository:
         self,
         client: Optional[QdrantClient] = None,
         url: Optional[str] = None,
+        api_key: Optional[str] = None,
         collection_name: str = settings.qdrant_collection,
         vector_dim: int = settings.embedding_dimension,
         path: Optional[str] = None,
@@ -68,20 +70,21 @@ class QdrantRepository:
     ):
         self.collection_name = collection_name
         self.vector_dim = vector_dim
+        effective_api_key = api_key if api_key is not None else (settings.qdrant_api_key or None)
         
         if client is not None:
             self.client = client
         elif in_memory:
             self.client = QdrantClient(location=":memory:")
         elif url is not None:
-            self.client = QdrantClient(url=url, api_key=settings.qdrant_api_key or None)
+            self.client = QdrantClient(url=url, api_key=effective_api_key)
         elif path is not None:
             self.client = get_shared_qdrant_client(path=path)
         elif settings.qdrant_path:
             self.client = get_shared_qdrant_client(path=settings.qdrant_path)
         else:
             q_url = settings.qdrant_url
-            self.client = QdrantClient(url=q_url, api_key=settings.qdrant_api_key or None)
+            self.client = QdrantClient(url=q_url, api_key=effective_api_key)
             
         self.ensure_collection()
 

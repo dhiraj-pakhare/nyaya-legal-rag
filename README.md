@@ -361,6 +361,137 @@ docker compose down -v
 
 ---
 
+## Production Deployment
+
+This section describes deploying Nyaya Legal RAG to production using **Vercel** (Frontend), **Railway** (Backend API & Worker), **Managed Qdrant Cloud**, **Managed Redis**, and a **Hosted LLM API**.
+
+### Local Development vs. Production Architecture
+
+| Component | Local Development (`docker compose up -d`) | Production Cloud Deployment |
+| :--- | :--- | :--- |
+| **Frontend** | Nginx container (`http://localhost:5173`) or Vite (`npm run dev`) | **Vercel** (`https://<project>.vercel.app`) |
+| **Backend API** | Container `nyaya-api` on host port `8000` | **Railway** (Docker web service on port `8000`) |
+| **Worker** | Container `nyaya-worker` (internal Redis poller) | **Railway** (Docker background worker service) |
+| **Vector DB** | Local Qdrant container (`http://localhost:6333`) | **Managed Qdrant Cloud** (HTTPS + API Key) |
+| **Queue / Cache** | Local Redis container (`redis://redis:6379/0`) | **Managed Redis** (e.g. Upstash, Redis Cloud) |
+| **LLM Provider** | Host Ollama (`http://host.docker.internal:11434`) | **Hosted LLM API** (Groq / OpenAI / Custom) |
+| **Statutory PDF** | Bind-mounted host PDF (`./BNS bare act 2023.pdf`) | Managed Qdrant Hydration or Railway Volume |
+
+---
+
+### 1. Frontend Deployment (Vercel)
+
+The frontend is a React 19 Single Page Application bundled with Vite.
+
+1. **Deploy to Vercel**:
+   - Import the repository into Vercel.
+   - Set **Root Directory** to `frontend`.
+   - Build command: `npm run build`.
+   - Output directory: `dist`.
+2. **Configure Environment Variables in Vercel**:
+   - `VITE_API_BASE_URL`: The public HTTPS URL of your Railway API deployment:
+     ```
+     VITE_API_BASE_URL=https://<your-railway-api-domain>
+     ```
+3. **Client-Side SPA Routing**:
+   The [`frontend/vercel.json`](frontend/vercel.json) file automatically configures edge rewrites so that direct route navigation (e.g. `/chat`, `/forms`, `/documents`) routes through `index.html`.
+
+---
+
+### 2. Backend Deployment (Railway)
+
+Railway deploys the backend as two coordinated services from the same Dockerfile:
+
+#### Service 1: `api` (FastAPI Web Service)
+- **Source**: Root `Dockerfile` (runtime stage).
+- **Start Command**: `uvicorn backend.app.main:app --host 0.0.0.0 --port 8000` (default CMD).
+- **Public Networking**: Enabled on Port `8000`.
+- **Healthcheck Path**: `/health` (returns HTTP 200 `{"status": "UP", ...}`).
+
+#### Service 2: `worker` (Background Ingestion Processor)
+- **Source**: Same root `Dockerfile`.
+- **Start Command Override**: `python -m backend.app.workers.worker`.
+- **Public Networking**: Disabled (internal background worker process).
+
+#### Shared Environment Variables (API & Worker)
+Configure these variables in Railway (or via a shared Railway environment):
+```bash
+ENVIRONMENT=production
+AUTH_MODE=prod
+JWT_SECRET=<strong-cryptographic-random-secret>
+JWT_ALGORITHM=HS256
+
+# Managed Qdrant Cloud
+QDRANT_URL=https://<your-qdrant-cluster>.cloud.qdrant.io:6333
+QDRANT_API_KEY=<your-qdrant-api-key>
+QDRANT_COLLECTION=nyaya_legal_corpus
+QDRANT_USER_COLLECTION=nyaya_user_documents
+
+# Managed Redis
+REDIS_URL=rediss://default:<password>@<redis-host>:6379/0
+
+# Hosted LLM API
+LLM_PROVIDER=groq
+LLM_MODEL=llama-3.3-70b-versatile
+LLM_BASE_URL=https://api.groq.com/openai/v1
+LLM_API_KEY=<your-hosted-llm-api-key>
+LLM_TEMPERATURE=0.0
+LLM_MAX_TOKENS=1024
+LLM_TIMEOUT=30.0
+
+# Hardware
+EMBEDDING_DEVICE=cpu
+```
+
+#### API-Specific Environment Variables
+```bash
+CORS_ORIGINS=https://<your-vercel-domain>.vercel.app
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_REQUESTS_PER_MINUTE=60
+RATE_LIMIT_BURST_LIMIT=10
+```
+
+---
+
+### 3. Managed Infrastructure Setup
+
+#### Managed Qdrant Cloud
+1. Create a cluster on [Qdrant Cloud](https://cloud.qdrant.io/).
+2. Run a one-time migration from your local workstation using the ingestion script:
+   ```bash
+   python scripts/ingest.py \
+     --pdf-path "BNS bare act 2023.pdf" \
+     --qdrant-url "https://<your-qdrant-cluster>.cloud.qdrant.io:6333"
+   ```
+3. Verify that the remote collection reports exactly `1,027` points.
+
+#### Managed Redis
+1. Provision a managed Redis database (e.g. Upstash Redis, Redis Cloud, or Railway Managed Redis).
+2. Copy the connection URI into `REDIS_URL`. Note: Redis is kept strictly private and is never exposed to the public internet.
+
+#### Hosted LLM API
+1. Create an API key on Groq, OpenAI, or your preferred hosted provider.
+2. Set `LLM_PROVIDER`, `LLM_MODEL`, `LLM_BASE_URL`, and `LLM_API_KEY`. The system enforces zero-temperature extraction and AST citation validation identically across providers.
+
+---
+
+### 4. Statutory Corpus & PDF Handling in Production
+
+1. **Zero Runtime Purge Guarantee**: The application never purges, overwrites, or deletes Qdrant points during initialization.
+2. **Qdrant Payload Hydration**: When running on Railway where raw host PDFs are not mounted, the application safely hydrates the 1,027 canonical statutory chunks directly from the already-indexed remote Qdrant collection payloads (`get_statutory_chunks()`). This guarantees that exact section lookup and BM25 search function with 100% fidelity without requiring a local PDF file.
+3. **Optional Persistent Volume**: If raw PDF extraction or offline PDF downloads are required in production, attach a Railway persistent volume containing `BNS bare act 2023.pdf` and set `PDF_PATH=/app/data/BNS bare act 2023.pdf`.
+
+---
+
+### 5. Production Compose Testing
+
+To validate production container configuration locally before deploying to cloud providers, use:
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production config
+```
+
+---
+
 ## Verification
 
 ### Automated Backend Test Suite
@@ -426,6 +557,7 @@ nyaya-legal-rag/
 │   ├── Dockerfile                # Multi-stage production Nginx frontend image
 │   ├── nginx.conf                # Nginx reverse proxy configuration for SPA & SSE
 │   ├── package.json              # React 19, TypeScript, Vite scripts
+│   ├── vercel.json               # Minimal SPA rewrite configuration for Vercel
 │   └── vite.config.ts            # Vite dev proxy configuration
 ├── eval/
 │   └── golden_set.jsonl          # 30-query golden evaluation benchmark set
@@ -438,10 +570,12 @@ nyaya-legal-rag/
 ├── ARCHITECTURE.md               # Detailed system design and AST specifications
 ├── DECISIONS.md                  # Architectural Decision Records (ADRs)
 ├── Dockerfile                    # Multi-stage production API and Worker image
-├── docker-compose.yml            # Multi-container Compose definition
+├── docker-compose.yml            # Multi-container Compose definition (Local Dev)
+├── docker-compose.prod.yml       # Production Compose definition (Railway / Cloud)
 ├── IMPLEMENTATION_PLAN.md        # Development milestone documentation
 ├── requirements.txt              # Python dependencies
-└── .env.example                  # Environment configuration template
+├── .env.example                  # Local environment configuration template
+└── .env.production.example       # Production environment configuration template
 ```
 
 ---

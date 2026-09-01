@@ -139,3 +139,49 @@ def test_qdrant_metadata_filtering(in_memory_qdrant_repo):
     )
     assert len(results_bns) == 1
     assert results_bns[0].payload["section_number"] == "105"
+
+
+def test_qdrant_repo_api_key_initialization(monkeypatch):
+    """Verify QdrantRepository passes explicit api_key or falls back to settings."""
+    from unittest.mock import MagicMock, patch
+
+    mock_client = MagicMock()
+    mock_client.get_collections.return_value = MagicMock(collections=[])
+
+    with patch("backend.app.core.qdrant_repo.QdrantClient", return_value=mock_client) as mock_cls:
+        # Case 1: Explicit api_key passed
+        QdrantRepository(url="https://cloud.qdrant.io:6333", api_key="secret-cloud-key")
+        mock_cls.assert_called_with(url="https://cloud.qdrant.io:6333", api_key="secret-cloud-key")
+
+        # Case 2: No api_key passed, fallback to None when settings.qdrant_api_key is empty
+        monkeypatch.setattr("backend.app.core.config.settings.qdrant_api_key", "")
+        QdrantRepository(url="http://localhost:6333")
+        mock_cls.assert_called_with(url="http://localhost:6333", api_key=None)
+
+        # Case 3: No api_key passed, fallback to settings.qdrant_api_key when configured
+        monkeypatch.setattr("backend.app.core.config.settings.qdrant_api_key", "env-api-key")
+        QdrantRepository(url="https://cloud.qdrant.io:6333")
+        mock_cls.assert_called_with(url="https://cloud.qdrant.io:6333", api_key="env-api-key")
+
+
+def test_ingest_cli_api_key_argument(monkeypatch):
+    """Verify scripts/ingest.py CLI argument parsing for --qdrant-api-key."""
+    import os
+    import argparse
+
+    # Case 1: CLI argument provided explicitly
+    test_args = ["--pdf", "dummy.pdf", "--qdrant-url", "https://cloud.qdrant.io:6333", "--qdrant-api-key", "cli-test-key"]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--pdf", "--pdf-path", dest="pdf", default="BNS bare act 2023.pdf")
+    parser.add_argument("--qdrant-url", default=None)
+    parser.add_argument("--qdrant-api-key", default=os.getenv("QDRANT_API_KEY", None))
+    args = parser.parse_args(test_args)
+    assert args.qdrant_api_key == "cli-test-key"
+    assert args.qdrant_url == "https://cloud.qdrant.io:6333"
+
+    # Case 2: CLI argument omitted, environment variable fallback
+    monkeypatch.setenv("QDRANT_API_KEY", "env-fallback-key")
+    parser2 = argparse.ArgumentParser()
+    parser2.add_argument("--qdrant-api-key", default=os.getenv("QDRANT_API_KEY", None))
+    args2 = parser2.parse_args([])
+    assert args2.qdrant_api_key == "env-fallback-key"

@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { formsApi, APIError } from '../api/client';
 import type { StatutoryFormListItemDTO } from '../api/types';
 
-const BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000';
+const VITE_API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
 export function FormsView() {
   const [forms, setForms] = useState<StatutoryFormListItemDTO[]>([]);
@@ -114,12 +113,28 @@ export function FormsView() {
 }
 
 function FormCard({ form }: { form: StatutoryFormListItemDTO }) {
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
   function handleDownload() {
-    // The backend serves the file; open in new tab
-    const url = form.download_url.startsWith('http')
-      ? form.download_url
-      : `${BASE_URL}${form.download_url}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    setDownloadError(null);
+    if (form.download_url.startsWith('http')) {
+      window.open(form.download_url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    const isLocalhost =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    if (!VITE_API_BASE && !isLocalhost) {
+      setDownloadError(
+        'Production API URL (VITE_API_BASE_URL) is not configured. Form download unavailable.'
+      );
+      return;
+    }
+
+    const targetUrl = VITE_API_BASE ? `${VITE_API_BASE}${form.download_url}` : form.download_url;
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
   }
 
   const needsReviewLabel = form.needs_review ? (
@@ -174,6 +189,12 @@ function FormCard({ form }: { form: StatutoryFormListItemDTO }) {
           ⬇ PDF
         </button>
       </div>
+
+      {downloadError && (
+        <div style={{ color: 'var(--c-error)', fontSize: '0.75rem', marginTop: '6px' }}>
+          {downloadError}
+        </div>
+      )}
     </div>
   );
 }

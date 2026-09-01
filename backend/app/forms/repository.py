@@ -104,6 +104,54 @@ class StatutoryFormRegistry:
         return len(self._forms)
 
 
+def load_forms_from_manifest(manifest_path: str = "data/forms/forms_manifest.json") -> List[StatutoryForm]:
+    """Hydrate authoritative statutory forms from pre-extracted forms manifest."""
+    import json
+    import os
+
+    candidates = [
+        manifest_path,
+        os.path.join(os.getcwd(), manifest_path),
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "forms", "forms_manifest.json"),
+        "/app/data/forms/forms_manifest.json",
+    ]
+    target = None
+    for c in candidates:
+        if os.path.exists(c):
+            target = c
+            break
+
+    if not target:
+        logger.warning(f"Statutory forms manifest not found at candidate locations ({candidates}).")
+        return []
+
+    try:
+        with open(target, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        forms_list: List[StatutoryForm] = []
+        for item in data.get("forms", []):
+            form = StatutoryForm(
+                form_id=item.get("form_id", f"BNSS_FORM_{item['form_number']:02d}"),
+                form_number=item["form_number"],
+                form_title=item.get("title", ""),
+                act="Bharatiya Nagarik Suraksha Sanhita, 2023",
+                act_short="BNSS",
+                schedule=data.get("schedule", "The Second Schedule (Bharatiya Nagarik Suraksha Sanhita, 2023)"),
+                parent_section="522",
+                applicable_sections=item.get("section_references", []),
+                page_start=item.get("page_start", 0),
+                page_end=item.get("page_end", 0),
+                raw_text=item.get("raw_text", item.get("title", "")),
+                provenance_citation=item.get("provenance", f"[BNSS Second Schedule, Form {item['form_number']}]"),
+            )
+            forms_list.append(form)
+        logger.info(f"Loaded {len(forms_list)} statutory forms from manifest '{target}'.")
+        return forms_list
+    except Exception as e:
+        logger.error(f"Failed to load statutory forms manifest from '{target}': {e}", exc_info=True)
+        return []
+
+
 _registry_instance: Optional[StatutoryFormRegistry] = None
 _registry_lock = threading.Lock()
 
@@ -114,9 +162,19 @@ def get_form_registry(pdf_path: str = "BNS bare act 2023.pdf") -> StatutoryFormR
     if _registry_instance is None:
         with _registry_lock:
             if _registry_instance is None:
-                parser = SecondScheduleParser(pdf_path=pdf_path)
-                forms = parser.parse_forms()
-                _registry_instance = StatutoryFormRegistry(forms)
+                import os
+                if os.path.exists(pdf_path):
+                    parser = SecondScheduleParser(pdf_path=pdf_path)
+                    forms = parser.parse_forms()
+                    _registry_instance = StatutoryFormRegistry(forms)
+                else:
+                    logger.info(f"Statutory PDF not found at '{pdf_path}'. Attempting fallback hydration from forms manifest...")
+                    manifest_forms = load_forms_from_manifest()
+                    if manifest_forms:
+                        _registry_instance = StatutoryFormRegistry(manifest_forms)
+                    else:
+                        logger.warning("Statutory PDF and forms manifest unavailable. Initializing empty forms registry.")
+                        _registry_instance = StatutoryFormRegistry([])
     return _registry_instance
 
 

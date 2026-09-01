@@ -256,17 +256,53 @@ _GLOBAL_STATUTORY_CHUNKS: Optional[List[StatutoryChunk]] = None
 
 
 def get_statutory_chunks() -> List[StatutoryChunk]:
-    """Load or parse canonical statutory chunks from the source PDF (cached singleton)."""
+    """Load or parse canonical statutory chunks from the source PDF or Qdrant fallback (cached singleton)."""
     global _GLOBAL_STATUTORY_CHUNKS
     if _GLOBAL_STATUTORY_CHUNKS is None:
         try:
-            from backend.app.ingestion.parser import StatutoryParser
-            parser = StatutoryParser(pdf_path=settings.pdf_path)
-            res = parser.parse()
-            _GLOBAL_STATUTORY_CHUNKS = res.chunks
-            logger.info(f"Loaded {len(_GLOBAL_STATUTORY_CHUNKS)} canonical statutory chunks (555 BNSS + 472 BNS Schedule).")
+            import os
+            if os.path.exists(settings.pdf_path):
+                from backend.app.ingestion.parser import StatutoryParser
+                parser = StatutoryParser(pdf_path=settings.pdf_path)
+                res = parser.parse()
+                _GLOBAL_STATUTORY_CHUNKS = res.chunks
+                logger.info(f"Loaded {len(_GLOBAL_STATUTORY_CHUNKS)} canonical statutory chunks from PDF.")
+            else:
+                # Production fallback when PDF is not mounted on host (e.g. Railway):
+                # Exhaustively hydrate statutory chunks directly from the already-indexed managed Qdrant collection
+                from backend.app.core.qdrant_repo import get_qdrant_repository
+                repo = get_qdrant_repository()
+
+                records = []
+                scroll_offset = None
+                while True:
+                    batch, scroll_offset = repo.client.scroll(
+                        collection_name=repo.collection_name,
+                        limit=500,
+                        offset=scroll_offset,
+                        with_payload=True,
+                        with_vectors=False
+                    )
+                    records.extend(batch)
+                    if scroll_offset is None:
+                        break
+
+                hydrated = [StatutoryChunk(**r.payload) for r in records if r.payload]
+                expected_count = 1027
+                actual_count = len(hydrated)
+
+                if actual_count < expected_count:
+                    msg = (
+                        f"Corpus anomaly: expected {expected_count} statutory points in Qdrant, "
+                        f"found {actual_count}. Cannot safely operate with incomplete statutory corpus."
+                    )
+                    logger.warning(msg)
+                    raise RuntimeError(msg)
+
+                _GLOBAL_STATUTORY_CHUNKS = hydrated
+                logger.info(f"Hydrated {len(_GLOBAL_STATUTORY_CHUNKS)} statutory chunks from Qdrant collection '{repo.collection_name}'.")
         except Exception as e:
-            logger.warning(f"Could not parse statutory chunks: {e}")
+            logger.warning(f"Could not load statutory chunks: {e}")
             _GLOBAL_STATUTORY_CHUNKS = []
     return _GLOBAL_STATUTORY_CHUNKS
 
