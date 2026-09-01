@@ -11,8 +11,11 @@ export function AuthScreen({ onDevLogin, onLogin }: Props) {
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    const t = token.trim();
+    let t = token.trim();
     if (!t) { setError('Please enter a token.'); return; }
+    if (t.toLowerCase().startsWith('bearer ')) {
+      t = t.slice(7).trim();
+    }
     // Extract userId from token if structured (e.g. "token_alice" → "alice")
     let userId = t;
     if (t.startsWith('token_')) {

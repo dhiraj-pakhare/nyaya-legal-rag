@@ -53,6 +53,9 @@ export function setAuthToken(token: string | null): void {
 }
 
 export function getAuthToken(): string | null {
+  if (!_authToken && typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined') {
+    _authToken = window.sessionStorage.getItem(AUTH_TOKEN_KEY);
+  }
   return _authToken;
 }
 
@@ -77,6 +80,7 @@ export class APIError extends Error {
     this.code = code;
     this.retryAfter = retryAfter;
     this.details = details;
+    Object.setPrototypeOf(this, APIError.prototype);
   }
 }
 
@@ -90,12 +94,13 @@ async function apiFetch<T>(
     ...(init.headers as Record<string, string>),
   };
 
-  if (_authToken) {
-    headers['Authorization'] = `Bearer ${_authToken}`;
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   // Dev fallback: pass a dev header so backend resolves identity
-  if (!_authToken && import.meta.env.DEV) {
+  if (!token && import.meta.env.DEV) {
     headers['X-User-ID'] = 'frontend_dev_user';
   }
 
@@ -169,8 +174,9 @@ export const queryApi = {
       Accept: 'text/event-stream',
     };
 
-    if (_authToken) {
-      headers['Authorization'] = `Bearer ${_authToken}`;
+    const token = getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     } else if (import.meta.env.DEV) {
       headers['X-User-ID'] = 'frontend_dev_user';
     }
@@ -184,6 +190,7 @@ export const queryApi = {
     if (!response.ok) {
       let code = 'STREAM_ERROR';
       let message = `HTTP ${response.status}`;
+      let details: Record<string, unknown> | null = null;
       let retryAfter: number | undefined;
 
       if (response.status === 429) {
@@ -193,7 +200,16 @@ export const queryApi = {
         message = 'Rate limit exceeded. Please wait before retrying.';
       }
 
-      throw new APIError(response.status, code, message, retryAfter);
+      try {
+        const body = (await response.json()) as APIErrorResponse;
+        code = body.error?.code ?? code;
+        message = body.error?.message ?? message;
+        details = body.error?.details ?? null;
+      } catch {
+        // Body not JSON – use defaults
+      }
+
+      throw new APIError(response.status, code, message, retryAfter, details);
     }
 
     return response;
@@ -208,8 +224,9 @@ export const documentsApi = {
     form.append('file', file);
 
     const uploadHeaders: Record<string, string> = {};
-    if (_authToken) {
-      uploadHeaders['Authorization'] = `Bearer ${_authToken}`;
+    const token = getAuthToken();
+    if (token) {
+      uploadHeaders['Authorization'] = `Bearer ${token}`;
     } else if (import.meta.env.DEV) {
       uploadHeaders['X-User-ID'] = 'frontend_dev_user';
     }

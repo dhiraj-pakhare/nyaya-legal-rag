@@ -185,21 +185,26 @@ export function useSSEStream() {
     } catch (err) {
       if ((err as DOMException).name === 'AbortError') return;
 
-      if (err instanceof APIError) {
+      if (err instanceof APIError || (typeof err === 'object' && err !== null && 'status' in err)) {
+        const apiErr = err as APIError;
         setState((prev) => ({
           ...prev,
           status: 'error',
           error:
-            err.status === 429
-              ? `Rate limit reached. Retry in ${err.retryAfter ?? '?'} seconds.`
-              : err.message,
-          retryAfter: err.retryAfter ?? null,
+            apiErr.status === 429
+              ? `Rate limit reached. Retry in ${apiErr.retryAfter ?? '?'} seconds.`
+              : apiErr.status === 401
+              ? (apiErr.message && !apiErr.message.startsWith('HTTP')
+                  ? apiErr.message
+                  : 'Authentication required. Missing or invalid Bearer token.')
+              : apiErr.message || `HTTP ${apiErr.status}`,
+          retryAfter: apiErr.retryAfter ?? null,
         }));
       } else {
         setState((prev) => ({
           ...prev,
           status: 'error',
-          error: 'Failed to connect to server. Is the backend running?',
+          error: (err as Error)?.message || 'Failed to connect to server. Is the backend running?',
         }));
       }
     }
