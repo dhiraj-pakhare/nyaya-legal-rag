@@ -2,8 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { CitationChips } from '../components/CitationChips';
 import { CitationSourceModal } from '../components/CitationSourceModal';
 import type { CitationDTO } from '../api/types';
-import type { ChatMessage } from '../hooks/useChatState';
-import type { StreamState } from '../hooks/useSSEStream';
+import { useChatState, type ChatMessage } from '../hooks/useChatState';
 
 export type { ChatMessage };
 
@@ -14,19 +13,8 @@ const CORPUS_LABELS: Record<string, string> = {
   STATUTORY_FORM: 'Statutory Forms',
 };
 
-interface ChatViewProps {
-  messages: ChatMessage[];
-  onSendMessage: (query: string, activeDocIds?: string[], enableForms?: boolean) => void;
-  isStreaming: boolean;
-  streamState: StreamState;
-}
-
-export function ChatView({
-  messages,
-  onSendMessage,
-  isStreaming,
-  streamState,
-}: ChatViewProps) {
+export function ChatView() {
+  const { messages, sendMessage, isStreaming, streamState } = useChatState();
   const [input, setInput] = useState('');
   const [enableForms, setEnableForms] = useState(true);
   const [activeDocIds] = useState<string[]>([]);
@@ -44,7 +32,7 @@ export function ChatView({
     if (!query) return;
     if (isStreaming) return;
 
-    onSendMessage(query, activeDocIds, enableForms);
+    sendMessage(query, activeDocIds, enableForms);
     setInput('');
   };
 

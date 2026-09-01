@@ -1,4 +1,12 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from 'react';
 import { useSSEStream, type StreamState } from './useSSEStream';
 import type { CitationDTO } from '../api/types';
 
@@ -15,12 +23,22 @@ export interface ChatMessage {
   isRefused?: boolean;
 }
 
+export interface ChatStateContextValue {
+  messages: ChatMessage[];
+  sendMessage: (query: string, activeDocIds?: string[], enableForms?: boolean) => void;
+  clearMessages: () => void;
+  isStreaming: boolean;
+  streamState: StreamState;
+}
+
+const ChatStateContext = createContext<ChatStateContextValue | null>(null);
+
 let msgCounter = 0;
 function uid() {
   return `msg-${++msgCounter}`;
 }
 
-export function useChatState() {
+export function ChatStateProvider({ children }: { children: ReactNode }) {
   const { state: streamState, stream, reset: resetStream } = useSSEStream();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const streamMsgId = useRef<string | null>(null);
@@ -111,13 +129,25 @@ export function useChatState() {
 
   const isStreaming = streamState.status === 'streaming' || streamState.status === 'connecting';
 
-  return {
-    messages,
-    sendMessage,
-    clearMessages,
-    isStreaming,
-    streamState,
-  };
+  return (
+    <ChatStateContext.Provider
+      value={{
+        messages,
+        sendMessage,
+        clearMessages,
+        isStreaming,
+        streamState,
+      }}
+    >
+      {children}
+    </ChatStateContext.Provider>
+  );
 }
 
-export type ChatState = ReturnType<typeof useChatState>;
+export function useChatState(): ChatStateContextValue {
+  const context = useContext(ChatStateContext);
+  if (!context) {
+    throw new Error('useChatState must be used within a ChatStateProvider');
+  }
+  return context;
+}

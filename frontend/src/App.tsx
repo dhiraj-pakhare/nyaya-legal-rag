@@ -6,7 +6,7 @@ import { ChatView } from './views/ChatView';
 import { DocumentsView } from './views/DocumentsView';
 import { FormsView } from './views/FormsView';
 import { useAuth } from './hooks/useAuth';
-import { useChatState } from './hooks/useChatState';
+import { ChatStateProvider, useChatState } from './hooks/useChatState';
 
 function PageHeader({
   title,
@@ -36,15 +36,93 @@ function PageHeader({
   );
 }
 
-function App() {
-  const { auth, login, logout, devLogin } = useAuth();
+function AuthenticatedApp({
+  userId,
+  onLogout,
+}: {
+  userId: string | null;
+  onLogout: () => void;
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const chatState = useChatState();
+  const { clearMessages } = useChatState();
 
   const handleLogout = () => {
-    chatState.clearMessages();
-    logout();
+    clearMessages();
+    onLogout();
   };
+
+  const handleCloseSidebar = () => setSidebarOpen(false);
+  const handleOpenSidebar = () => setSidebarOpen(true);
+
+  return (
+    <div className="app-shell">
+      <Sidebar
+        userId={userId}
+        onLogout={handleLogout}
+        isOpen={sidebarOpen}
+        onClose={handleCloseSidebar}
+      />
+      <div className="main-panel">
+        <Routes>
+          <Route path="/" element={<Navigate to="/chat" replace />} />
+
+          <Route
+            path="/chat"
+            element={
+              <>
+                <PageHeader
+                  title="⚖️ Legal Assistant"
+                  subtitle="Grounded in BNS 2023 & BNSS 2023 · Citations verified server-side"
+                  onMenuClick={handleOpenSidebar}
+                />
+                <div className="chat-view-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+                  <ChatView />
+                </div>
+              </>
+            }
+          />
+
+          <Route
+            path="/documents"
+            element={
+              <>
+                <PageHeader
+                  title="📄 My Documents"
+                  subtitle="Upload PDFs for private document RAG · Per-user isolation"
+                  onMenuClick={handleOpenSidebar}
+                />
+                <div className="page-content-container" style={{ flex: 1, overflowY: 'auto', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+                  <DocumentsView />
+                </div>
+              </>
+            }
+          />
+
+          <Route
+            path="/forms"
+            element={
+              <>
+                <PageHeader
+                  title="📋 Statutory Forms"
+                  subtitle="BNSS 2023 — The Second Schedule · 58 forms"
+                  onMenuClick={handleOpenSidebar}
+                />
+                <div className="page-content-container" style={{ flex: 1, overflowY: 'auto', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+                  <FormsView />
+                </div>
+              </>
+            }
+          />
+
+          <Route path="*" element={<Navigate to="/chat" replace />} />
+        </Routes>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const { auth, login, logout, devLogin } = useAuth();
 
   if (!auth.isAuthenticated) {
     return (
@@ -55,79 +133,11 @@ function App() {
     );
   }
 
-  const handleCloseSidebar = () => setSidebarOpen(false);
-  const handleOpenSidebar = () => setSidebarOpen(true);
-
   return (
     <BrowserRouter>
-      <div className="app-shell">
-        <Sidebar
-          userId={auth.userId}
-          onLogout={handleLogout}
-          isOpen={sidebarOpen}
-          onClose={handleCloseSidebar}
-        />
-        <div className="main-panel">
-          <Routes>
-            <Route path="/" element={<Navigate to="/chat" replace />} />
-
-            <Route
-              path="/chat"
-              element={
-                <>
-                  <PageHeader
-                    title="⚖️ Legal Assistant"
-                    subtitle="Grounded in BNS 2023 & BNSS 2023 · Citations verified server-side"
-                    onMenuClick={handleOpenSidebar}
-                  />
-                  <div className="chat-view-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxWidth: '100%', minWidth: 0 }}>
-                    <ChatView
-                      messages={chatState.messages}
-                      onSendMessage={chatState.sendMessage}
-                      isStreaming={chatState.isStreaming}
-                      streamState={chatState.streamState}
-                    />
-                  </div>
-                </>
-              }
-            />
-
-            <Route
-              path="/documents"
-              element={
-                <>
-                  <PageHeader
-                    title="📄 My Documents"
-                    subtitle="Upload PDFs for private document RAG · Per-user isolation"
-                    onMenuClick={handleOpenSidebar}
-                  />
-                  <div className="page-content-container" style={{ flex: 1, overflowY: 'auto', width: '100%', maxWidth: '100%', minWidth: 0 }}>
-                    <DocumentsView />
-                  </div>
-                </>
-              }
-            />
-
-            <Route
-              path="/forms"
-              element={
-                <>
-                  <PageHeader
-                    title="📋 Statutory Forms"
-                    subtitle="BNSS 2023 — The Second Schedule · 58 forms"
-                    onMenuClick={handleOpenSidebar}
-                  />
-                  <div className="page-content-container" style={{ flex: 1, overflowY: 'auto', width: '100%', maxWidth: '100%', minWidth: 0 }}>
-                    <FormsView />
-                  </div>
-                </>
-              }
-            />
-
-            <Route path="*" element={<Navigate to="/chat" replace />} />
-          </Routes>
-        </div>
-      </div>
+      <ChatStateProvider>
+        <AuthenticatedApp userId={auth.userId} onLogout={logout} />
+      </ChatStateProvider>
     </BrowserRouter>
   );
 }
