@@ -6,6 +6,7 @@ import { ChatView } from './views/ChatView';
 import { DocumentsView } from './views/DocumentsView';
 import { FormsView } from './views/FormsView';
 import { useAuth } from './hooks/useAuth';
+import { useChatState } from './hooks/useChatState';
 
 function PageHeader({
   title,
@@ -38,6 +39,12 @@ function PageHeader({
 function App() {
   const { auth, login, logout, devLogin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const chatState = useChatState();
+
+  const handleLogout = () => {
+    chatState.clearMessages();
+    logout();
+  };
 
   if (!auth.isAuthenticated) {
     return (
@@ -56,7 +63,7 @@ function App() {
       <div className="app-shell">
         <Sidebar
           userId={auth.userId}
-          onLogout={logout}
+          onLogout={handleLogout}
           isOpen={sidebarOpen}
           onClose={handleCloseSidebar}
         />
@@ -73,8 +80,13 @@ function App() {
                     subtitle="Grounded in BNS 2023 & BNSS 2023 · Citations verified server-side"
                     onMenuClick={handleOpenSidebar}
                   />
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                    <ChatView />
+                  <div className="chat-view-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+                    <ChatView
+                      messages={chatState.messages}
+                      onSendMessage={chatState.sendMessage}
+                      isStreaming={chatState.isStreaming}
+                      streamState={chatState.streamState}
+                    />
                   </div>
                 </>
               }
@@ -89,7 +101,7 @@ function App() {
                     subtitle="Upload PDFs for private document RAG · Per-user isolation"
                     onMenuClick={handleOpenSidebar}
                   />
-                  <div style={{ flex: 1, overflowY: 'auto' }}>
+                  <div className="page-content-container" style={{ flex: 1, overflowY: 'auto', width: '100%', maxWidth: '100%', minWidth: 0 }}>
                     <DocumentsView />
                   </div>
                 </>
@@ -105,7 +117,7 @@ function App() {
                     subtitle="BNSS 2023 — The Second Schedule · 58 forms"
                     onMenuClick={handleOpenSidebar}
                   />
-                  <div style={{ flex: 1, overflowY: 'auto' }}>
+                  <div className="page-content-container" style={{ flex: 1, overflowY: 'auto', width: '100%', maxWidth: '100%', minWidth: 0 }}>
                     <FormsView />
                   </div>
                 </>
