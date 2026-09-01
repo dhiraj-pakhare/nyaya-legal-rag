@@ -121,10 +121,6 @@ class StatutoryGenerationPipeline:
         gen_start = time.perf_counter()
         initial_messages = build_generation_messages(clean_query, context_str)
         llm_response = self.llm_provider.generate(initial_messages)
-        logger.warning(
-            "DEBUG LLM INITIAL CONTENT: %r",
-            llm_response.content
-        )
         gen_latency = (time.perf_counter() - gen_start) * 1000
 
         total_prompt_tokens = llm_response.prompt_tokens or 0
@@ -157,10 +153,6 @@ class StatutoryGenerationPipeline:
                 failure_reasons=validation_status.failure_reasons
             )
             regen_response = self.llm_provider.generate(regen_messages)
-            logger.warning(
-                "DEBUG LLM REGEN CONTENT: %r",
-                regen_response.content
-            )
             gen_latency += (time.perf_counter() - regen_start) * 1000
 
             if regen_response.prompt_tokens:
