@@ -88,3 +88,32 @@ def test_regeneration_first_invalid_second_invalid_refuses():
     assert resp.validation_status.is_valid is False
     assert resp.validation_status.regeneration_attempted is True
     assert len(mock_llm.call_history) == 2
+
+
+def test_generation_debug_logging(caplog):
+    """Verify diagnostic logging outputs LLM content without altering pipeline behavior."""
+    import logging
+    mock_llm = MockLLMProvider()
+    mock_llm.set_responses([
+        "Invalid attempt [BNS s.999].",
+        "Whoever commits murder shall be punished [BNS s.103(1)]."
+    ])
+    pipeline = StatutoryGenerationPipeline(llm_provider=mock_llm)
+    retrieval_result = RetrievalResult(
+        query="What is the punishment for murder?",
+        mode="exact_lookup",
+        documents=[create_retrieved_doc()],
+        total_retrieved=1,
+        latency_ms=5.0,
+        is_refused=False
+    )
+
+    with caplog.at_level(logging.WARNING, logger="nyaya.generation.generator"):
+        resp = pipeline.generate(
+            query="What is the punishment for murder?",
+            retrieval_result=retrieval_result
+        )
+
+    assert resp.status == "SUCCESS"
+    assert "DEBUG LLM INITIAL CONTENT: 'Invalid attempt [BNS s.999].'" in caplog.text
+    assert "DEBUG LLM REGEN CONTENT: 'Whoever commits murder shall be punished [BNS s.103(1)].'" in caplog.text
