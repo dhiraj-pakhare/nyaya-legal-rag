@@ -36,9 +36,9 @@ class DualParsedCitation(BaseModel):
 class DualCitationParser:
     """Extracts and normalizes statutory ([BNS s.103]) and user document ([DOC p.4]) citations."""
 
-    # Regex for user document citations: [DOC p.4], [DOC page 4], [DOC:notice.pdf p.4], [DOC p.4-5]
+    # Regex for user document citations: [DOC p.4], [DOC p. 4], [DOC page 4], [DOC:notice.pdf p.4], [DOC p.4-5]
     DOC_CITATION_PATTERN = re.compile(
-        r'\[\s*DOC(?::\s*([^\]\s]+))?\s+(?:p\.|page\s*)(\d+)(?:\s*-\s*(\d+))?\s*\]',
+        r'\[\s*DOC(?::\s*([^\]\s]+))?\s+(?:p\.\s*|page\s*)(\d+)(?:\s*-\s*(\d+))?\s*\]',
         re.IGNORECASE
     )
 
@@ -189,7 +189,11 @@ class DualCitationValidator:
                             )
                             break
             invalid_citations.extend(stat_status.invalid_citations)
-            failure_reasons.extend(stat_status.failure_reasons)
+            stat_failure_reasons = [
+                r for r in stat_status.failure_reasons
+                if not r.startswith("Detected ") and not r.startswith("Answer contains 0 statutory citations")
+            ]
+            failure_reasons.extend(stat_failure_reasons)
 
         # Validate user document citations
         doc_citations = [c for c in parsed_citations if c.citation_type == "USER_DOCUMENT"]
@@ -220,6 +224,8 @@ class DualCitationValidator:
                 failure_reasons.append(reason)
 
         uncited_claims = self._detect_uncited_claims(answer_text)
+        if uncited_claims:
+            failure_reasons.append(f"Detected {len(uncited_claims)} substantive claim(s) without required citations.")
         is_valid = len(invalid_citations) == 0 and len(failure_reasons) == 0
 
         return ValidationStatus(
@@ -239,7 +245,7 @@ class DualCitationValidator:
         uncited: List[str] = []
 
         for sentence in sentences:
-            has_citation = bool(re.search(r'\[(?:BNS|BNSS|DOC)\s+[^\]]+\]', sentence, re.IGNORECASE))
+            has_citation = bool(re.search(r'\[(?:BNS|BNSS|DOC)(?::|\s)[^\]]+\]', sentence, re.IGNORECASE))
             if not has_citation:
                 has_legal_keyword = any(pat.search(sentence) for pat in self.UNCITED_CLAIM_PATTERNS)
                 if has_legal_keyword and len(sentence) > 30:

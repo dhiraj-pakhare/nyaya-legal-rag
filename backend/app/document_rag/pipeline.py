@@ -40,21 +40,27 @@ logger = logging.getLogger("nyaya.document_rag.pipeline")
 
 MULTI_SOURCE_SYSTEM_PROMPT = """You are Nyaya, a strict statutory and document legal assistant specializing in the Bharatiya Nyaya Sanhita, 2023 (BNS), Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS), and user-uploaded documents.
 
-### MANDATORY GENERATION RULES:
-1. FACTUAL GROUNDING: Answer the query using ONLY the factual evidence provided in the context.
-2. CITATION CONTRACT:
-   - For statutory legal claims: Mandatory inline citations in the format [Act s.Number] (e.g., [BNS s.103] or [BNSS s.35]).
-   - For user document facts: Mandatory inline citations in the format [DOC p.Page] (e.g., [DOC p.1] or [DOC p.2]).
-   Every substantive factual claim or legal statement MUST contain an inline citation.
-3. NO HALLUCINATIONS: Never invent section numbers, document facts, or citations not present in the evidence.
-4. INSUFFICIENT EVIDENCE REFUSAL: If the provided evidence does not contain sufficient information to answer the question, state: "Insufficient evidence in the retrieved context to answer the question."
-5. DIRECT OUTPUT ONLY: Output only the grounded answer with proper citations. Do not include internal monologue or think tags.
+### MANDATORY CITATION CONTRACT:
+1. FACTUAL GROUNDING: Answer using ONLY the factual evidence provided within the <evidence> tags.
+2. MANDATORY INLINE CITATIONS:
+   - For user document facts: Every single factual assertion, statement, personal detail, or answer drawn from user documents MUST contain an inline citation in the exact format: [DOC p.Page] (e.g., [DOC p.1]).
+     Example: "Based on the provided document [DOC p.1], your name is Dhiraj Pakhare."
+   - For statutory legal claims: Every sentence making a substantive legal claim MUST contain an inline citation in the exact format: [BNS s.Number] or [BNSS s.Number] (e.g., [BNS s.103] or [BNSS s.35]).
+   NEVER write any sentence without an inline citation.
+3. CITATION VERIFICATION RULE: The system runs automated AST citation verification. If an answer contains 0 citations or lacks [DOC p.X] for document facts, it will be automatically REJECTED.
+4. NO HALLUCINATIONS: Never invent section numbers, document facts, page numbers, or citations not present in the evidence.
+5. INSUFFICIENT EVIDENCE: If the provided evidence does not contain sufficient information to answer the question, state: "The provided evidence does not contain sufficient information to answer the question."
+6. DIRECT OUTPUT ONLY: Output ONLY the final answer with required citations. Do not output internal monologue or <think> tags.
 """
 
 MULTI_SOURCE_REGEN_PROMPT = """You are Nyaya, a strict statutory and document legal assistant.
-Your previous response was REJECTED due to unsupported claims or missing citations.
-Provide a corrected response answering strictly based on the provided evidence.
-Ensure EVERY legal statement cites [Act s.Number] (e.g. [BNS s.103]) and EVERY document statement cites [DOC p.X] (e.g. [DOC p.1]).
+Your previous response was REJECTED by programmatic citation validation because it contained missing, uncited, or unsupported statements.
+
+CORRECTION RULES:
+1. Every statement answering the query MUST have an inline citation.
+2. For facts from user documents, append [DOC p.X] (e.g. [DOC p.1]).
+3. For statutory provisions, cite [BNS s.Number] or [BNSS s.Number].
+4. Output only the corrected answer with valid citations.
 """
 
 
@@ -72,7 +78,13 @@ def build_multi_source_generation_messages(
 {query}
 </user_query>
 
-Please answer the user query based strictly on the evidence above. For statutory claims, cite [Act s.Number] (e.g. [BNS s.103]). For user document facts, cite [DOC p.X] (e.g. [DOC p.1]). Every substantive statement MUST have an inline citation."""
+INSTRUCTIONS:
+Answer the user query based strictly on the evidence above.
+CRITICAL MANDATORY CITATION RULE:
+Every statement answering the query MUST include an inline citation:
+- For facts from the user's document, cite [DOC p.X] where X is the page number (e.g., [DOC p.1]).
+- For statutory claims, cite [Act s.Number] (e.g., [BNS s.103]).
+If you state the user's name or any detail from the document, you MUST append [DOC p.X]. Never output an answer without citations."""
     return [
         LLMMessage(role="system", content=system_prompt),
         LLMMessage(role="user", content=user_content)
@@ -104,9 +116,14 @@ def build_multi_source_regeneration_messages(
 </citation_validation_errors>
 
 CORRECTION INSTRUCTIONS:
-The previous answer was rejected because of the citation validation errors above.
-Provide a corrected response based strictly on <evidence>.
-Ensure EVERY legal claim cites [Act s.Number] and EVERY user document claim cites [DOC p.X] (e.g. [DOC p.1])."""
+Your previous answer was REJECTED because:
+{reasons_formatted}
+
+Please provide a corrected response based strictly on <evidence>.
+Every statement must contain an inline citation:
+- Use [DOC p.X] (e.g., [DOC p.1]) for facts from user documents.
+- Use [BNS s.Number] or [BNSS s.Number] for statutory provisions.
+Do not omit the inline citation."""
     return [
         LLMMessage(role="system", content=MULTI_SOURCE_REGEN_PROMPT),
         LLMMessage(role="user", content=user_content)
@@ -337,6 +354,7 @@ class UserDocumentRAGPipeline:
         gen_start = time.perf_counter()
         llm_resp = self.llm.generate(messages)
         gen_latency_ms = (time.perf_counter() - gen_start) * 1000.0
+        logger.info(f"Raw LLM generation (Attempt 1): {llm_resp.content}")
 
         # 4. AST Dual-Citation Validation - Attempt 1
         val_start = time.perf_counter()
@@ -369,6 +387,7 @@ class UserDocumentRAGPipeline:
             regen_start = time.perf_counter()
             regen_resp = self.llm.generate(regen_messages)
             gen_latency_ms += (time.perf_counter() - regen_start) * 1000.0
+            logger.info(f"Raw LLM generation (Attempt 2 - Regeneration): {regen_resp.content}")
 
             regen_val_start = time.perf_counter()
             val_status = self.citation_validator.validate(
