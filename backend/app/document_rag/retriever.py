@@ -29,7 +29,11 @@ class UserDocumentRetriever:
     ):
         self.repository = repository
         self.embedding_model = embedding_model or get_embedding_model()
-        self.reranker = reranker or CrossEncoderReranker()
+        if reranker is not None:
+            self.reranker = reranker
+        else:
+            from backend.app.retrieval.reranker import get_reranker
+            self.reranker = get_reranker()
         self.bm25_manager = bm25_manager or UserDocumentBM25Manager()
         self.rrf_k = rrf_k
 

@@ -38,6 +38,81 @@ from backend.app.retrieval.pipeline import HybridRetrievalPipeline
 logger = logging.getLogger("nyaya.document_rag.pipeline")
 
 
+MULTI_SOURCE_SYSTEM_PROMPT = """You are Nyaya, a strict statutory and document legal assistant specializing in the Bharatiya Nyaya Sanhita, 2023 (BNS), Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS), and user-uploaded documents.
+
+### MANDATORY GENERATION RULES:
+1. FACTUAL GROUNDING: Answer the query using ONLY the factual evidence provided in the context.
+2. CITATION CONTRACT:
+   - For statutory legal claims: Mandatory inline citations in the format [Act s.Number] (e.g., [BNS s.103] or [BNSS s.35]).
+   - For user document facts: Mandatory inline citations in the format [DOC p.Page] (e.g., [DOC p.1] or [DOC p.2]).
+   Every substantive factual claim or legal statement MUST contain an inline citation.
+3. NO HALLUCINATIONS: Never invent section numbers, document facts, or citations not present in the evidence.
+4. INSUFFICIENT EVIDENCE REFUSAL: If the provided evidence does not contain sufficient information to answer the question, state: "Insufficient evidence in the retrieved context to answer the question."
+5. DIRECT OUTPUT ONLY: Output only the grounded answer with proper citations. Do not include internal monologue or think tags.
+"""
+
+MULTI_SOURCE_REGEN_PROMPT = """You are Nyaya, a strict statutory and document legal assistant.
+Your previous response was REJECTED due to unsupported claims or missing citations.
+Provide a corrected response answering strictly based on the provided evidence.
+Ensure EVERY legal statement cites [Act s.Number] (e.g. [BNS s.103]) and EVERY document statement cites [DOC p.X] (e.g. [DOC p.1]).
+"""
+
+
+def build_multi_source_generation_messages(
+    query: str,
+    context_str: str,
+    system_prompt: str = MULTI_SOURCE_SYSTEM_PROMPT
+) -> List[LLMMessage]:
+    """Construct prompt instructions covering both statutory and user document inline citations."""
+    user_content = f"""<evidence>
+{context_str}
+</evidence>
+
+<user_query>
+{query}
+</user_query>
+
+Please answer the user query based strictly on the evidence above. For statutory claims, cite [Act s.Number] (e.g. [BNS s.103]). For user document facts, cite [DOC p.X] (e.g. [DOC p.1]). Every substantive statement MUST have an inline citation."""
+    return [
+        LLMMessage(role="system", content=system_prompt),
+        LLMMessage(role="user", content=user_content)
+    ]
+
+
+def build_multi_source_regeneration_messages(
+    query: str,
+    context_str: str,
+    invalid_answer: str,
+    failure_reasons: List[str]
+) -> List[LLMMessage]:
+    """Construct regeneration prompt enforcing both statutory and user document citations."""
+    reasons_formatted = "\n".join(f"- {r}" for r in failure_reasons)
+    user_content = f"""<evidence>
+{context_str}
+</evidence>
+
+<user_query>
+{query}
+</user_query>
+
+<rejected_previous_answer>
+{invalid_answer}
+</rejected_previous_answer>
+
+<citation_validation_errors>
+{reasons_formatted}
+</citation_validation_errors>
+
+CORRECTION INSTRUCTIONS:
+The previous answer was rejected because of the citation validation errors above.
+Provide a corrected response based strictly on <evidence>.
+Ensure EVERY legal claim cites [Act s.Number] and EVERY user document claim cites [DOC p.X] (e.g. [DOC p.1])."""
+    return [
+        LLMMessage(role="system", content=MULTI_SOURCE_REGEN_PROMPT),
+        LLMMessage(role="user", content=user_content)
+    ]
+
+
 class UserDocumentRAGPipeline:
     """Master orchestrator for user document ingestion, scoped retrieval, and citation-grounded generation."""
 
@@ -59,9 +134,11 @@ class UserDocumentRAGPipeline:
         self.repository = repository or get_user_doc_repository()
         self.statutory_pipeline = statutory_pipeline or get_hybrid_retrieval_pipeline()
         self.embedding_model = embedding_model or get_embedding_model()
+        shared_reranker = getattr(self.statutory_pipeline, "reranker", None)
         self.document_retriever = document_retriever or UserDocumentRetriever(
             repository=self.repository,
-            embedding_model=self.embedding_model
+            embedding_model=self.embedding_model,
+            reranker=shared_reranker
         )
         self.llm = llm_provider or get_llm_provider()
         self.pdf_extractor = pdf_extractor or UserPDFExtractor()
@@ -214,9 +291,10 @@ class UserDocumentRAGPipeline:
                 if not document_evidence and top_stat_score < 0.35:
                     is_refused = True
                     refusal_reason = "No relevant document evidence found and statutory confidence is low."
-                elif not statutory_evidence and top_doc_score < 0.1:
-                    is_refused = True
-                    refusal_reason = "Insufficient document evidence relevance."
+                elif not statutory_evidence and document_evidence:
+                    # Align with DOCUMENT_ONLY: retrieved candidate document evidence proceeds to grounded generation
+                    is_refused = False
+                    refusal_reason = None
                 else:
                     is_refused = False
                     refusal_reason = None
@@ -234,6 +312,7 @@ class UserDocumentRAGPipeline:
                 is_refused=True,
                 refusal_reason=refusal_reason or "Low confidence retrieval refusal.",
                 confidence={"confidence_score": confidence_score, "reason": refusal_reason},
+                retrieval_metadata={"routed_corpus": routing.intent.value},
                 telemetry=GenerationTelemetry(
                     retrieval_latency_ms=retrieval_latency_ms,
                     generation_latency_ms=0.0,
@@ -249,7 +328,10 @@ class UserDocumentRAGPipeline:
 
         # 2. Build Multi-Source Context
         context_str = self.context_builder.build_context(statutory_evidence, document_evidence)
-        messages = build_generation_messages(query_text, context_str)
+        if document_evidence:
+            messages = build_multi_source_generation_messages(query_text, context_str)
+        else:
+            messages = build_generation_messages(query_text, context_str)
 
         # 3. LLM Generation - Attempt 1
         gen_start = time.perf_counter()
@@ -270,12 +352,20 @@ class UserDocumentRAGPipeline:
         # 5. Controlled 1-Time Regeneration Pass if Validation Fails
         if not val_status.is_valid:
             logger.warning(f"Citation validation failed on Attempt 1: {val_status.failure_reasons}. Triggering regeneration.")
-            regen_messages = build_regeneration_messages(
-                query=query_text,
-                context_str=context_str,
-                invalid_answer=llm_resp.content,
-                failure_reasons=val_status.failure_reasons
-            )
+            if document_evidence:
+                regen_messages = build_multi_source_regeneration_messages(
+                    query=query_text,
+                    context_str=context_str,
+                    invalid_answer=llm_resp.content,
+                    failure_reasons=val_status.failure_reasons
+                )
+            else:
+                regen_messages = build_regeneration_messages(
+                    query=query_text,
+                    context_str=context_str,
+                    invalid_answer=llm_resp.content,
+                    failure_reasons=val_status.failure_reasons
+                )
             regen_start = time.perf_counter()
             regen_resp = self.llm.generate(regen_messages)
             gen_latency_ms += (time.perf_counter() - regen_start) * 1000.0

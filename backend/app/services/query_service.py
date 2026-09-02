@@ -219,7 +219,9 @@ class LegalQueryService:
         result_dto = self.execute_query(scope, request)
 
         if result_dto.is_refused or result_dto.status in ("REFUSED", "VALIDATION_FAILED", "NOT_FOUND", "AMBIGUOUS"):
-            yield self._format_sse("refusal", result_dto.model_dump())
+            refusal_payload = result_dto.model_dump()
+            refusal_payload["reason"] = result_dto.refusal_reason
+            yield self._format_sse("refusal", refusal_payload)
             return
 
         # Emit verified citation metadata first

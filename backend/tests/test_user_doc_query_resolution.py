@@ -460,3 +460,170 @@ def test_end_to_end_resume_ingestion_and_chat_flow():
     assert "Section 103" in resp_statutory.answer
     assert any("[BNS s.103" in c.citation_text for c in resp_statutory.citations)
 
+
+def test_combined_query_not_refused_when_cross_encoder_score_below_0_1():
+    """Verify that in COMBINED routing, low cross-encoder score (< 0.1) on user document
+    evidence does NOT prematurely abort the query when statutory evidence is absent.
+    The document evidence proceeds to grounded generation and citation validation.
+    """
+    repo, user_doc_pipeline, query_service, mock_llm = _setup_test_environment()
+    scope = UserDocumentSessionScope(user_id="user_bob")
+
+    doc_id = "doc_resume_bob"
+    user_doc = UserDocument(
+        document_id=doc_id,
+        user_id="user_bob",
+        filename="Bob_Resume.pdf",
+        file_hash="hash_bob_123",
+        file_size_bytes=4200,
+        page_count=1,
+        status=IngestionStatus.READY,
+        indexed_chunks_count=1
+    )
+    repo.register_document(user_doc, scope)
+
+    chunk = UserDocumentChunk(
+        chunk_id=f"{doc_id}_p1_c1",
+        document_id=doc_id,
+        user_id="user_bob",
+        filename="Bob_Resume.pdf",
+        page_start=1,
+        page_end=1,
+        chunk_index=0,
+        text="Candidate Name: Bob Vance. Operations Director.",
+        score=0.000097,  # Exact production score < 0.1
+        token_count=8
+    )
+    vec = np.ones((1, 768), dtype=np.float32)
+    repo.upsert_user_chunks([chunk], vec, scope=scope)
+
+    # Statutory pipeline returns low confidence refusal (no statutory law on personal names)
+    stat_pipeline = user_doc_pipeline.statutory_pipeline
+    def mock_statutory_retrieve(query, top_k=5):
+        return RetrievalResult(
+            query=query,
+            mode="hybrid_rrf",
+            documents=[],
+            confidence={"confidence_score": 0.20, "reason": "low_retrieval_confidence"},
+            is_refused=True
+        )
+    stat_pipeline.retrieve = mock_statutory_retrieve
+
+    # Mock retriever to preserve the low score
+    def mock_doc_retrieve(query, scope, top_k=5):
+        chunk.score = 0.000097  # Simulate MS-MARCO score < 0.1
+        return [chunk]
+    user_doc_pipeline.document_retriever.retrieve = mock_doc_retrieve
+
+    mock_llm.set_canned_response("Based on [DOC p.1], the candidate name is Bob Vance.")
+
+    req = QueryRequestDTO(query="What is my name?", document_ids=None)
+    resp = query_service.execute_query(scope=scope, request=req)
+
+    assert resp.status == "SUCCESS"
+    assert resp.is_refused is False
+    assert resp.routed_corpus == "COMBINED"
+    assert "Bob Vance" in resp.answer
+    assert len(resp.citations) >= 1
+    assert resp.citations[0].citation_text == "[DOC p.1]"
+
+
+def test_combined_query_refuses_when_both_corpora_empty():
+    """Verify that in COMBINED routing, if neither corpus contains evidence, the query is refused."""
+    repo, user_doc_pipeline, query_service, mock_llm = _setup_test_environment()
+    scope = UserDocumentSessionScope(user_id="user_charlie")
+
+    # User has ready document, but query retrieves 0 chunks
+    doc_id = "doc_empty_charlie"
+    user_doc = UserDocument(
+        document_id=doc_id,
+        user_id="user_charlie",
+        filename="Empty.pdf",
+        file_hash="hash_charlie_123",
+        file_size_bytes=1000,
+        page_count=1,
+        status=IngestionStatus.READY,
+        indexed_chunks_count=0
+    )
+    repo.register_document(user_doc, scope)
+
+    stat_pipeline = user_doc_pipeline.statutory_pipeline
+    def mock_statutory_retrieve(query, top_k=5):
+        return RetrievalResult(
+            query=query,
+            mode="hybrid_rrf",
+            documents=[],
+            confidence={"confidence_score": 0.0, "reason": "No hits"},
+            is_refused=True
+        )
+    stat_pipeline.retrieve = mock_statutory_retrieve
+
+    def mock_doc_retrieve(query, scope, top_k=5):
+        return []
+    user_doc_pipeline.document_retriever.retrieve = mock_doc_retrieve
+
+    req = QueryRequestDTO(query="What is the quantum flux coefficient?", document_ids=None)
+    resp = query_service.execute_query(scope=scope, request=req)
+
+    assert resp.status == "REFUSED"
+    assert resp.is_refused is True
+    assert resp.routed_corpus == "COMBINED"
+    assert resp.refusal_reason == "Neither statutory law nor user document contained relevant evidence."
+
+
+def test_reranker_instance_shared_between_statutory_and_user_doc_retriever():
+    """Verify that UserDocumentRAGPipeline reuses statutory_pipeline.reranker to avoid duplicate model loading."""
+    from backend.app.retrieval.reranker import get_reranker
+
+    dummy_stat = DummyStatutoryPipeline()
+    shared_reranker = get_reranker()
+    dummy_stat.reranker = shared_reranker
+
+    repo = UserDocumentRepository(in_memory=True, collection_name="test_shared_reranker")
+    pipeline = UserDocumentRAGPipeline(
+        repository=repo,
+        statutory_pipeline=dummy_stat
+    )
+
+    assert pipeline.document_retriever.reranker is shared_reranker
+    assert pipeline.document_retriever.reranker is dummy_stat.reranker
+
+
+def test_stream_query_sse_refusal_payload_includes_reason():
+    """Verify that event: refusal contains reason matching refusal_reason for frontend consumption."""
+    import asyncio
+    import json
+
+    async def _run_test():
+        repo, user_doc_pipeline, query_service, mock_llm = _setup_test_environment()
+        scope = UserDocumentSessionScope(user_id="user_david")
+
+        stat_pipeline = query_service.statutory_pipeline
+        stat_pipeline.generate = lambda q: LegalAnswerResponse(
+            query=q,
+            status="REFUSED",
+            answer=None,
+            citations=[],
+            is_refused=True,
+            refusal_reason="Statutory low confidence refusal"
+        )
+
+        req = QueryRequestDTO(query="unknown query with no docs", document_ids=[])
+        events = []
+        async for chunk in query_service.stream_query(scope=scope, request=req):
+            events.append(chunk)
+
+        all_text = "".join(events)
+        assert "event: refusal" in all_text
+
+        # Extract JSON data from event: refusal
+        for part in all_text.split("\n\n"):
+            if part.startswith("event: refusal"):
+                for line in part.split("\n"):
+                    if line.startswith("data: "):
+                        payload = json.loads(line[6:])
+                        assert "reason" in payload
+                        assert payload["reason"] == payload["refusal_reason"]
+                        assert payload["is_refused"] is True
+
+    asyncio.run(_run_test())
