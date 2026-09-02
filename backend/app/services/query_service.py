@@ -23,6 +23,7 @@ from backend.app.api.schemas.query import (
     StatutoryCitationDTO,
 )
 from backend.app.document_rag.models import (
+    IngestionStatus,
     RoutingDecision,
     UserDocumentSessionScope,
 )
@@ -30,6 +31,7 @@ from backend.app.document_rag.pipeline import (
     UserDocumentRAGPipeline,
     get_user_doc_rag_pipeline,
 )
+from backend.app.document_rag.repository import get_user_doc_repository
 from backend.app.forms.pipeline import StatutoryFormPipeline
 from backend.app.forms.repository import get_form_registry
 from backend.app.generation.generator import (
@@ -137,20 +139,35 @@ class LegalQueryService:
                 return dto
 
         # 2. Check if active user documents are present or specified
-        active_doc_ids = request.document_ids or []
+        user_doc_repo = (
+            self._user_doc_pipeline.repository
+            if self._user_doc_pipeline is not None
+            else get_user_doc_repository()
+        )
+        caller_ready_docs = [
+            doc for doc in user_doc_repo.list_documents(scope)
+            if doc.status == IngestionStatus.READY
+            and (scope.session_id is None or doc.session_id is None or doc.session_id == scope.session_id)
+        ]
+        caller_ready_ids = {doc.document_id for doc in caller_ready_docs}
+
+        if request.document_ids is not None:
+            # Explicit scoping requested by client: enforce caller ownership and READY status
+            active_doc_ids = [doc_id for doc_id in request.document_ids if doc_id in caller_ready_ids]
+        elif scope.active_document_ids:
+            # Pre-scoped caller context (e.g. from upstream test/service scope)
+            active_doc_ids = [doc_id for doc_id in scope.active_document_ids if not caller_ready_ids or doc_id in caller_ready_ids]
+        else:
+            # Default scoping: include all READY documents owned by the caller/session
+            active_doc_ids = [doc.document_id for doc in caller_ready_docs]
+
         effective_scope = UserDocumentSessionScope(
             user_id=scope.user_id,
             session_id=scope.session_id,
             active_document_ids=active_doc_ids
         )
 
-        has_documents = False
-        if len(active_doc_ids) > 0:
-            has_documents = True
-        elif len(scope.active_document_ids) > 0:
-            has_documents = self.user_doc_pipeline.repository.count_user_chunks(effective_scope) > 0
-        elif self._user_doc_pipeline is not None:
-            has_documents = self.user_doc_pipeline.repository.count_user_chunks(effective_scope) > 0
+        has_documents = len(active_doc_ids) > 0
 
         if has_documents:
             # Multi-tenant document RAG pipeline (handles statutory, document, and combined)
@@ -285,8 +302,13 @@ class LegalQueryService:
                 )
 
         routed_corpus = "STATUTORY"
-        if resp.retrieval_metadata:
-            routed_corpus = resp.retrieval_metadata.get("routed_corpus", "STATUTORY")
+        if resp.retrieval_metadata and "routed_corpus" in resp.retrieval_metadata:
+            routed_corpus = resp.retrieval_metadata["routed_corpus"]
+        elif any(c.citation_type == CitationType.DOCUMENT for c in citations):
+            if any(c.citation_type == CitationType.STATUTORY for c in citations):
+                routed_corpus = "COMBINED"
+            else:
+                routed_corpus = "USER_DOCUMENT"
 
         telemetry_dict = resp.telemetry.model_dump() if resp.telemetry else None
 

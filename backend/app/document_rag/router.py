@@ -13,7 +13,8 @@ class QueryIntentRouter:
         "document", "notice", "fir", "petition", "attached file", "uploaded",
         "allegation", "complainant", "accused", "according to the document",
         "agreement", "contract", "clause", "complaint", "in my case",
-        "bail application", "charge sheet", "affidavit", "plaint", "written statement"
+        "bail application", "charge sheet", "affidavit", "plaint", "written statement",
+        "resume", "cv"
     ]
 
     STATUTORY_SIGNALS = [
@@ -45,7 +46,10 @@ class QueryIntentRouter:
         is_exact = exact_intent is not None and exact_intent.is_exact_lookup
 
         # Check signals
-        has_doc_signal = any(sig in q_lower for sig in self.DOCUMENT_SIGNALS)
+        has_doc_signal = any(
+            re.search(rf"\b{re.escape(sig)}\b", q_lower) if len(sig) <= 2 else sig in q_lower
+            for sig in self.DOCUMENT_SIGNALS
+        )
         has_stat_signal = (
             is_exact or
             any(sig in q_lower for sig in self.STATUTORY_SIGNALS)

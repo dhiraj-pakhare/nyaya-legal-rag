@@ -319,6 +319,10 @@ class UserDocumentRAGPipeline:
                 )
             )
 
+        routed_corpus_name = "USER_DOCUMENT" if routing.intent == QueryIntent.DOCUMENT_ONLY else (
+            "COMBINED" if routing.intent == QueryIntent.COMBINED else "STATUTORY"
+        )
+
         return LegalAnswerResponse(
             query=query_text,
             status="SUCCESS",
@@ -328,6 +332,7 @@ class UserDocumentRAGPipeline:
             refusal_reason=None,
             confidence={"confidence_score": confidence_score},
             validation_status=val_status,
+            retrieval_metadata={"routed_corpus": routed_corpus_name},
             telemetry=GenerationTelemetry(
                 retrieval_latency_ms=retrieval_latency_ms,
                 generation_latency_ms=gen_latency_ms,
