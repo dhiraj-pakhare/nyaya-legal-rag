@@ -72,8 +72,16 @@ export interface SSEEvent {
 
 // ─── Documents ───────────────────────────────────────────────────────────────
 
-export type IngestionStatus = 'QUEUED' | 'PROCESSING' | 'READY' | 'FAILED';
-export type IngestionStage = 'queued' | 'parsing' | 'chunking' | 'embedding' | 'indexing' | 'complete' | 'failed';
+export type IngestionStatus = 'QUEUED' | 'PROCESSING' | 'READY' | 'FAILED' | 'CANCELLED';
+export type IngestionStage = 'queued' | 'parsing' | 'chunking' | 'embedding' | 'indexing' | 'complete' | 'failed' | 'cancelled';
+
+export interface DocumentCancellationResponseDTO {
+  job_id: string;
+  document_id: string;
+  status: IngestionStatus;
+  message: string;
+  cancelled_at: string;
+}
 
 export interface DocumentUploadResponseDTO {
   job_id: string;

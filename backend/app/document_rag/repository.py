@@ -11,6 +11,7 @@ from backend.app.core.config import settings
 from backend.app.core.qdrant_repo import NYAYA_NAMESPACE, get_shared_qdrant_client
 from backend.app.document_rag.models import (
     DocumentNotFoundError,
+    IngestionStatus,
     SecurityScopeError,
     UserDocument,
     UserDocumentChunk,
@@ -318,6 +319,47 @@ class UserDocumentRepository:
 
         logger.info(f"Deleted document '{document_id}' ({count_res.count} points) for user '{scope.user_id}'.")
         return count_res.count
+
+    def purge_document_vectors(self, document_id: str, scope: UserDocumentSessionScope) -> int:
+        """Purge any vector points for a document strictly scoped to caller's user_id without touching statutory corpus.
+
+        Idempotent and safe: does not throw if 0 points exist.
+        Updates local document registry record to CANCELLED.
+        """
+        scope.validate_scope()
+        filter_condition = qmodels.Filter(
+            must=[
+                qmodels.FieldCondition(key="user_id", match=qmodels.MatchValue(value=scope.user_id)),
+                qmodels.FieldCondition(key="document_id", match=qmodels.MatchValue(value=document_id))
+            ]
+        )
+        try:
+            count_res = self.client.count(
+                collection_name=self.collection_name,
+                count_filter=filter_condition
+            )
+            deleted_count = count_res.count
+            if deleted_count > 0:
+                self.client.delete(
+                    collection_name=self.collection_name,
+                    points_selector=filter_condition
+                )
+                logger.info(
+                    f"Purged {deleted_count} vectors for cancelled document '{document_id}' "
+                    f"in collection '{self.collection_name}' (user='{scope.user_id}')."
+                )
+
+            # Update local registry status to CANCELLED
+            if document_id in self._doc_registry and self._doc_registry[document_id].user_id == scope.user_id:
+                doc = self._doc_registry[document_id]
+                doc.status = IngestionStatus.CANCELLED
+                doc.error_message = "Ingestion was cancelled."
+                doc.indexed_chunks_count = 0
+
+            return deleted_count
+        except Exception as e:
+            logger.warning(f"Error purging vectors for document '{document_id}': {e}")
+            return 0
 
     def count_user_chunks(self, scope: UserDocumentSessionScope) -> int:
         """Count total chunks owned strictly by the caller's trusted identity."""

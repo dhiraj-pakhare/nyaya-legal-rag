@@ -15,6 +15,7 @@ export interface UploadJob {
   progress: number;
   stage: string;
   error: string | null;
+  cancelling?: boolean;
 }
 
 export function useDocuments() {
@@ -119,6 +120,66 @@ export function useDocuments() {
     [startPolling],
   );
 
+  const cancelJob = useCallback(
+    async (jobId: string): Promise<boolean> => {
+      // Clear polling timer immediately so polling doesn't resurrect PROCESSING status
+      const timer = pollingRef.current.get(jobId);
+      if (timer) {
+        clearTimeout(timer);
+        pollingRef.current.delete(jobId);
+      }
+
+      // Mark cancelling optimistically
+      setJobs((prev) => {
+        const next = new Map(prev);
+        const existing = next.get(jobId);
+        if (existing) {
+          next.set(jobId, {
+            ...existing,
+            cancelling: true,
+          });
+        }
+        return next;
+      });
+
+      try {
+        const res = await documentsApi.cancel(jobId);
+        setJobs((prev) => {
+          const next = new Map(prev);
+          const existing = next.get(jobId);
+          if (existing) {
+            next.set(jobId, {
+              ...existing,
+              status: res.status,
+              stage: res.status === 'CANCELLED' ? 'cancelled' : existing.stage,
+              error: res.status === 'CANCELLED' ? 'Cancelled by user' : existing.error,
+              cancelling: false,
+            });
+          }
+          return next;
+        });
+        fetchDocuments();
+        return true;
+      } catch (err) {
+        const msg = err instanceof APIError ? err.message : 'Failed to cancel ingestion.';
+        setError(msg);
+        setJobs((prev) => {
+          const next = new Map(prev);
+          const existing = next.get(jobId);
+          if (existing) {
+            next.set(jobId, {
+              ...existing,
+              cancelling: false,
+            });
+          }
+          return next;
+        });
+        return false;
+      }
+    },
+    [fetchDocuments],
+  );
+
   const deleteDocument = useCallback(
     async (documentId: string): Promise<void> => {
       await documentsApi.delete(documentId);
@@ -133,6 +194,7 @@ export function useDocuments() {
     loading,
     error,
     uploadDocument,
+    cancelJob,
     deleteDocument,
     refresh: fetchDocuments,
   };

@@ -16,6 +16,7 @@ from backend.app.api.errors import (
     UnsupportedMediaTypeError,
 )
 from backend.app.api.schemas.documents import (
+    DocumentCancellationResponseDTO,
     DocumentDetailDTO,
     DocumentIngestResponseDTO,
     DocumentListItemDTO,
@@ -172,6 +173,101 @@ class DocumentManagementService:
                 chunk_count=doc.indexed_chunks_count,
                 updated_at=doc.uploaded_at.isoformat()
             )
+        except DomainDocumentNotFoundError:
+            raise APIDocumentNotFoundError()
+
+    def cancel_document_ingestion(
+        self,
+        scope: UserDocumentSessionScope,
+        document_id_or_job_id: str
+    ) -> DocumentCancellationResponseDTO:
+        """Cancel an active or pending background ingestion job.
+
+        Enforces tenant scope and uniform 404 anti-enumeration.
+        Idempotent for READY, FAILED, and CANCELLED states.
+        """
+        scope.validate_scope()
+        target = document_id_or_job_id.strip()
+
+        # 1. Try finding and cancelling job in job_manager
+        job, was_terminal = self.job_manager.cancel_job(target, scope)
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        if job:
+            if job.status == IngestionStatus.CANCELLED:
+                if was_terminal:
+                    return DocumentCancellationResponseDTO(
+                        job_id=job.job_id,
+                        document_id=job.document_id,
+                        status=job.status.value,
+                        message="Job is already cancelled.",
+                        cancelled_at=now_iso
+                    )
+                self.repository.purge_document_vectors(job.document_id, scope)
+                try:
+                    self.pipeline.document_retriever.bm25_manager.invalidate(scope)
+                except Exception:
+                    pass
+                return DocumentCancellationResponseDTO(
+                    job_id=job.job_id,
+                    document_id=job.document_id,
+                    status=job.status.value,
+                    message="Ingestion job successfully cancelled.",
+                    cancelled_at=now_iso
+                )
+            elif job.status == IngestionStatus.READY:
+                return DocumentCancellationResponseDTO(
+                    job_id=job.job_id,
+                    document_id=job.document_id,
+                    status=job.status.value,
+                    message="Job has already completed and cannot be cancelled.",
+                    cancelled_at=now_iso
+                )
+            elif job.status == IngestionStatus.FAILED:
+                return DocumentCancellationResponseDTO(
+                    job_id=job.job_id,
+                    document_id=job.document_id,
+                    status=job.status.value,
+                    message="Job has already failed.",
+                    cancelled_at=now_iso
+                )
+
+        # 2. If not found in job_manager, check document repository
+        try:
+            doc = self.repository.get_document(target, scope)
+            if doc.status == IngestionStatus.READY:
+                return DocumentCancellationResponseDTO(
+                    job_id=f"job_{doc.document_id[:12]}",
+                    document_id=doc.document_id,
+                    status=doc.status.value,
+                    message="Job has already completed and cannot be cancelled.",
+                    cancelled_at=now_iso
+                )
+            elif doc.status == IngestionStatus.FAILED:
+                return DocumentCancellationResponseDTO(
+                    job_id=f"job_{doc.document_id[:12]}",
+                    document_id=doc.document_id,
+                    status=doc.status.value,
+                    message="Job has already failed.",
+                    cancelled_at=now_iso
+                )
+            elif doc.status == IngestionStatus.CANCELLED:
+                return DocumentCancellationResponseDTO(
+                    job_id=f"job_{doc.document_id[:12]}",
+                    document_id=doc.document_id,
+                    status=doc.status.value,
+                    message="Job is already cancelled.",
+                    cancelled_at=now_iso
+                )
+            else:
+                self.repository.purge_document_vectors(doc.document_id, scope)
+                return DocumentCancellationResponseDTO(
+                    job_id=f"job_{doc.document_id[:12]}",
+                    document_id=doc.document_id,
+                    status=IngestionStatus.CANCELLED.value,
+                    message="Ingestion job successfully cancelled.",
+                    cancelled_at=now_iso
+                )
         except DomainDocumentNotFoundError:
             raise APIDocumentNotFoundError()
 

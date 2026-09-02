@@ -8,6 +8,7 @@ from typing import Optional
 from backend.app.core.qdrant_repo import NYAYA_NAMESPACE
 from backend.app.document_rag.models import (
     CorruptPDFError,
+    IngestionCancelledException,
     IngestionStatus,
     UserDocument,
     UserDocumentSessionScope,
@@ -101,6 +102,30 @@ class AsyncIngestionWorker:
         )
         return job
 
+    def _handle_cancellation(
+        self,
+        job_id: str,
+        document_id: str,
+        scope: UserDocumentSessionScope
+    ) -> None:
+        """Clean up partial Qdrant vectors and mark state as CANCELLED."""
+        logger.info(f"Ingestion worker halting task '{job_id}' (doc='{document_id}') due to cancellation.")
+        try:
+            self.pipeline.repository.purge_document_vectors(document_id, scope)
+        except Exception as e:
+            logger.warning(f"Error purging vectors on cancellation for doc '{document_id}': {e}")
+
+        self.job_manager.update_job(
+            job_id=job_id,
+            status=IngestionStatus.CANCELLED,
+            stage="cancelled",
+            error="Job was cancelled by user."
+        )
+        try:
+            self.pipeline.document_retriever.bm25_manager.invalidate(scope)
+        except Exception:
+            pass
+
     def _execute_ingestion_task(
         self,
         job_id: str,
@@ -111,6 +136,10 @@ class AsyncIngestionWorker:
     ) -> None:
         """Task worker routine executed asynchronously in background thread."""
         try:
+            if self.job_manager.is_cancelled(job_id, scope):
+                self._handle_cancellation(job_id, document_id, scope)
+                return
+
             # Stage 1: Parsing
             self.job_manager.update_job(
                 job_id=job_id,
@@ -120,6 +149,10 @@ class AsyncIngestionWorker:
             )
             extracted_pages, has_ocr = self.pipeline.pdf_extractor.extract(file_bytes)
             page_count = len(extracted_pages)
+
+            if self.job_manager.is_cancelled(job_id, scope):
+                self._handle_cancellation(job_id, document_id, scope)
+                return
 
             # Stage 2: Chunking
             self.job_manager.update_job(
@@ -138,14 +171,38 @@ class AsyncIngestionWorker:
             if not chunks:
                 raise CorruptPDFError(f"No text content could be extracted from '{filename}'.")
 
-            # Stage 3: Embedding
+            if self.job_manager.is_cancelled(job_id, scope):
+                self._handle_cancellation(job_id, document_id, scope)
+                return
+
+            # Stage 3: Embedding (batch by batch checking cancellation)
             self.job_manager.update_job(
                 job_id=job_id,
                 progress=75,
                 stage="embedding"
             )
             chunk_texts = [c.text for c in chunks]
-            vectors = self.pipeline.embedding_model.embed_documents(chunk_texts)
+            batch_size = 16
+            all_vectors = []
+            for i in range(0, len(chunk_texts), batch_size):
+                if self.job_manager.is_cancelled(job_id, scope):
+                    self._handle_cancellation(job_id, document_id, scope)
+                    return
+                batch_texts = chunk_texts[i:i + batch_size]
+                batch_vecs = self.pipeline.embedding_model.embed_documents(batch_texts)
+                all_vectors.append(batch_vecs)
+
+            if not all_vectors:
+                vectors = []
+            elif isinstance(all_vectors[0], list):
+                vectors = [v for b in all_vectors for v in b]
+            else:
+                import numpy as np
+                vectors = np.vstack(all_vectors)
+
+            if self.job_manager.is_cancelled(job_id, scope):
+                self._handle_cancellation(job_id, document_id, scope)
+                return
 
             # Stage 4: Indexing
             self.job_manager.update_job(
@@ -159,7 +216,11 @@ class AsyncIngestionWorker:
                 scope=scope
             )
 
-            # Stage 5: Completion & Ready Registration
+            if self.job_manager.is_cancelled(job_id, scope):
+                self._handle_cancellation(job_id, document_id, scope)
+                return
+
+            # Stage 5: Completion & Atomic Ready Finalization
             file_hash = self.pipeline.pdf_extractor.compute_sha256(file_bytes)
             ready_doc = UserDocument(
                 document_id=document_id,
@@ -173,19 +234,28 @@ class AsyncIngestionWorker:
                 has_ocr_applied=has_ocr,
                 indexed_chunks_count=indexed_count
             )
-            self.pipeline.repository.register_document(ready_doc, scope)
-            self.pipeline.document_retriever.bm25_manager.invalidate(scope)
 
-            self.job_manager.update_job(
+            # Atomic finalization under IngestionJobManager lock
+            finalized = self.job_manager.finalize_ready(
                 job_id=job_id,
-                status=IngestionStatus.READY,
-                progress=100,
-                stage="complete",
-                chunk_count=indexed_count
+                scope=scope,
+                ready_doc=ready_doc,
+                register_callback=self.pipeline.repository.register_document
             )
+
+            if not finalized:
+                self._handle_cancellation(job_id, document_id, scope)
+                return
+
+            self.pipeline.document_retriever.bm25_manager.invalidate(scope)
             logger.info(f"Background ingestion job '{job_id}' completed successfully for doc '{document_id}'.")
 
+        except IngestionCancelledException:
+            self._handle_cancellation(job_id, document_id, scope)
         except Exception as e:
+            if self.job_manager.is_cancelled(job_id, scope):
+                self._handle_cancellation(job_id, document_id, scope)
+                return
             safe_error = str(e)
             logger.warning(f"Background ingestion job '{job_id}' failed for doc '{document_id}': {safe_error}")
             self.job_manager.update_job(

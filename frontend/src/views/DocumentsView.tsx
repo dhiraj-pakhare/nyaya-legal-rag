@@ -28,10 +28,11 @@ const STAGE_LABELS: Record<string, string> = {
   indexing:  'Indexing…',
   complete:  'Complete',
   failed:    'Failed',
+  cancelled: 'Cancelled',
 };
 
 export function DocumentsView() {
-  const { documents, jobs, loading, error, uploadDocument, deleteDocument, refresh } =
+  const { documents, jobs, loading, error, uploadDocument, cancelJob, deleteDocument, refresh } =
     useDocuments();
 
   const [dragging, setDragging] = useState(false);
@@ -130,7 +131,38 @@ export function DocumentsView() {
               <div key={job.jobId} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span className="text-sm truncate" style={{ maxWidth: '60%' }}>{job.filename}</span>
-                  <span className={`status-badge status-${job.status}`}>{job.status}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span className={`status-badge status-${job.status}`}>{job.status}</span>
+                    {(job.status === 'PROCESSING' || job.status === 'QUEUED') && (
+                      <button
+                        className="btn btn-outline btn-sm"
+                        style={{
+                          padding: '2px 8px',
+                          fontSize: '0.75rem',
+                          color: 'var(--c-error, #f87171)',
+                          borderColor: 'var(--c-error-border, rgba(248,113,113,0.3))',
+                          cursor: job.cancelling ? 'not-allowed' : 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                        disabled={job.cancelling}
+                        onClick={() => cancelJob(job.jobId)}
+                        title="Cancel this ingestion job"
+                        aria-label={`Cancel ingestion for ${job.filename}`}
+                        id={`cancel-job-${job.jobId}`}
+                      >
+                        {job.cancelling ? (
+                          <>
+                            <span className="spinner spinner-sm" style={{ width: 10, height: 10 }} />
+                            <span>Cancelling…</span>
+                          </>
+                        ) : (
+                          'Cancel'
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div className="progress-bar-track" style={{ flex: 1 }}>

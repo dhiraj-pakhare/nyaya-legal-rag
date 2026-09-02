@@ -20,9 +20,9 @@ class DocumentStatusDTO(BaseModel):
     """Status progress response for polling ingestion jobs."""
     job_id: str
     document_id: str
-    status: str                         # "QUEUED", "PROCESSING", "READY", "FAILED"
+    status: str                         # "QUEUED", "PROCESSING", "READY", "FAILED", "CANCELLED"
     progress: int = 0                   # 0 to 100
-    stage: str = "queued"               # "queued", "parsing", "chunking", "embedding", "indexing", "complete", "failed"
+    stage: str = "queued"               # "queued", "parsing", "chunking", "embedding", "indexing", "complete", "failed", "cancelled"
     error: Optional[str] = None
     page_count: Optional[int] = None
     chunk_count: Optional[int] = None
@@ -65,3 +65,12 @@ class DocumentDetailDTO(BaseModel):
     created_at: str
     status: str = "READY"
     sha256_hash: str
+
+
+class DocumentCancellationResponseDTO(BaseModel):
+    """Response returned upon cancelling an ingestion job."""
+    job_id: str
+    document_id: str
+    status: str = "CANCELLED"
+    message: str = "Ingestion job successfully cancelled."
+    cancelled_at: str

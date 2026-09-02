@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, File, UploadFile, status
 
 from backend.app.api.deps import get_session_scope
 from backend.app.api.schemas.documents import (
+    DocumentCancellationResponseDTO,
     DocumentDetailDTO,
     DocumentListItemDTO,
     DocumentStatusDTO,
@@ -57,6 +58,20 @@ def get_document_status(
     service: DocumentManagementService = Depends(get_document_service)
 ) -> DocumentStatusDTO:
     return service.get_document_status(scope=scope, document_id_or_job_id=document_id)
+
+
+@router.post(
+    "/{job_id}/cancel",
+    response_model=DocumentCancellationResponseDTO,
+    summary="Cancel Ingestion Job",
+    description="Cancels an active or pending background document ingestion job. Returns idempotent response if already finished, failed, or cancelled."
+)
+def cancel_document_ingestion(
+    job_id: str,
+    scope: UserDocumentSessionScope = Depends(get_session_scope),
+    service: DocumentManagementService = Depends(get_document_service)
+) -> DocumentCancellationResponseDTO:
+    return service.cancel_document_ingestion(scope=scope, document_id_or_job_id=job_id)
 
 
 @router.get(

@@ -872,6 +872,7 @@ a:hover {
   animation: pulse-status 1.5s ease-in-out infinite;
 }
 .status-FAILED    { background: var(--c-error-bg);   color: var(--c-error); }
+.status-CANCELLED { background: var(--c-surface-3);  color: var(--c-text-muted); }
 
 @keyframes pulse-status {
   0%, 100% { opacity: 1; }

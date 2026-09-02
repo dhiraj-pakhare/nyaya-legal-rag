@@ -11,6 +11,7 @@ class IngestionStatus(str, Enum):
     PROCESSING = "PROCESSING"
     READY = "READY"
     FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
 
 
 class QueryIntent(str, Enum):
@@ -41,6 +42,11 @@ class OversizedDocumentError(Exception):
 
 class OCRUnavailableError(Exception):
     """Raised when scanned document requires OCR but OCR engine is unavailable."""
+    pass
+
+
+class IngestionCancelledException(Exception):
+    """Raised when background document ingestion is cancelled by the caller."""
     pass
 
 

@@ -12,6 +12,7 @@
 
 import type {
   APIErrorResponse,
+  DocumentCancellationResponseDTO,
   DocumentListItemDTO,
   DocumentStatusDTO,
   DocumentUploadResponseDTO,
@@ -263,6 +264,10 @@ export const documentsApi = {
 
   getStatus(documentId: string): Promise<DocumentStatusDTO> {
     return apiFetch<DocumentStatusDTO>(`/documents/${documentId}/status`);
+  },
+
+  cancel(jobIdOrDocId: string): Promise<DocumentCancellationResponseDTO> {
+    return apiFetch<DocumentCancellationResponseDTO>(`/documents/${jobIdOrDocId}/cancel`, { method: 'POST' });
   },
 
   delete(documentId: string): Promise<void> {
