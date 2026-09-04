@@ -74,6 +74,7 @@ class ValidationStatus(BaseModel):
     invalid_citations: List[Dict[str, Any]] = Field(default_factory=list)
     uncited_claims_detected: List[str] = Field(default_factory=list)
     regeneration_attempted: bool = False
+    normalized_answer: Optional[str] = None
     failure_reasons: List[str] = Field(default_factory=list)
     error_details: Optional[str] = None
 

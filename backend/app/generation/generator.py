@@ -187,7 +187,8 @@ class StatutoryGenerationPipeline:
         # Extract verified citations for source drawer
         verified_citations: List[CitationVerification] = []
         if validation_status.is_valid and final_answer:
-            parsed = self.citation_validator.parser.parse(final_answer)
+            answer_for_cit = validation_status.normalized_answer or final_answer
+            parsed = self.citation_validator.parser.parse(answer_for_cit)
             for cit in parsed:
                 for doc in retrieval_result.documents:
                     doc_act = doc.act_short.upper()
@@ -215,6 +216,9 @@ class StatutoryGenerationPipeline:
                             )
                         )
                         break
+
+            if not verified_citations and validation_status.verified_citations:
+                verified_citations = list(validation_status.verified_citations)
 
         total_latency = (time.perf_counter() - overall_start) * 1000
 
