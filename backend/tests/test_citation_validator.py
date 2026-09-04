@@ -157,3 +157,49 @@ def test_validator_normal_sentences_still_split_normally():
     assert status.is_valid is False
     assert len(status.uncited_claims_detected) == 1
     assert "punishable with imprisonment" in status.uncited_claims_detected[0]
+
+
+def test_validator_bracket_with_title_valid():
+    """Verify that bracketed citations containing section title like [BNS s.187: Mint] are valid."""
+    validator = CitationValidator()
+    docs = [create_mock_doc("BNS", "187", "Person employed in Mint", "Text...", sub=None)]
+    answer = "[BNS s.187: Person employed in Mint] Offence is cognizable and punishable with imprisonment."
+    status = validator.validate(answer, docs)
+    assert status.is_valid is True
+    assert status.valid_citations_count == 1
+    assert len(status.uncited_claims_detected) == 0
+
+
+def test_validator_bns_bnss_act_mismatch_rejected():
+    """Verify that citing BNSS when evidence is BNS is strictly rejected."""
+    validator = CitationValidator()
+    docs = [create_mock_doc("BNS", "103", "Murder", "Text...", sub=None)]
+    answer = "[BNSS s.103(2)] Offence of murder by group of five is punishable with death."
+    status = validator.validate(answer, docs)
+    assert status.is_valid is False
+    assert status.invalid_citations_count == 1
+    assert any("BNSS" in r for r in status.failure_reasons)
+
+
+def test_validator_doc_citations_valid():
+    """Verify that user document citations [DOC p.X] are accepted for non-statutory claims."""
+    validator = CitationValidator()
+    docs = [create_mock_doc("BNS", "103", "Murder", "Text...", sub=None)]
+    answer = "According to clause 4 of the contract [DOC p.3], arbitration is mandatory."
+    status = validator.validate(answer, docs)
+    assert status.is_valid is True
+    assert len(status.uncited_claims_detected) == 0
+
+
+def test_validator_multisentence_all_cited_valid():
+    """Verify that multi-sentence legal answers where each sentence is cited pass cleanly."""
+    validator = CitationValidator()
+    docs = [
+        create_mock_doc("BNS", "103", "Murder", "Text...", sub=None),
+        create_mock_doc("BNSS", "187", "Investigation", "Text...", sub=None)
+    ]
+    answer = "[BNS s.103] Murder is punishable with death or life imprisonment. [BNSS s.187] Investigation must be completed within 24 hours."
+    status = validator.validate(answer, docs)
+    assert status.is_valid is True
+    assert status.valid_citations_count == 2
+    assert len(status.uncited_claims_detected) == 0

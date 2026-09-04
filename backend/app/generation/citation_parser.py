@@ -9,9 +9,9 @@ from backend.app.generation.models import ParsedCitation
 class CitationParser:
     """Extracts and normalizes structured statutory citations from text."""
 
-    # Matches bracketed citations like [BNS s.103], [BNSS s.35(1)], [BNS Section 105(2)(a)]
+    # Matches bracketed citations like [BNS s.103], [BNSS s.35(1)], [BNS Section 105(2)(a)], [BNS s.187: Title]
     BRACKETED_CITATION_REGEX = re.compile(
-        r'\[\s*(?P<act>BNS|BNSS)\s+(?:s\.|sec\.|section\s*)\s*(?P<section>\d+[A-Za-z]?)(?:\s*\((?P<sub1>[0-9a-zA-Z]+)\))?(?:\s*\((?P<sub2>[0-9a-zA-Z]+)\))?(?:\s*\((?P<sub3>[0-9a-zA-Z]+)\))?\s*\]',
+        r'\[\s*(?P<act>BNS|BNSS)\s+(?:s\.|sec\.|section\s*)\s*(?P<section>\d+[A-Za-z]?)(?:\s*:[^\]\)]+)?(?:\s*\((?P<sub1>[0-9a-zA-Z]+)\))?(?:\s*\((?P<sub2>[0-9a-zA-Z]+)\))?(?:\s*\((?P<sub3>[0-9a-zA-Z]+)\))?\s*\]',
         re.IGNORECASE
     )
 

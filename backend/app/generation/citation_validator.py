@@ -38,7 +38,20 @@ class CitationValidator:
         self.parser = parser or CitationParser()
 
     def _split_into_sentences(self, text: str) -> List[str]:
-        """Split text into sentences while respecting abbreviations, decimals, and quotations."""
+        """Split text into sentences while respecting abbreviations, decimals, quotations, and trailing citation tags."""
+        if not text:
+            return []
+
+        # 0. Normalize trailing bracketed citations placed right after sentence punctuation
+        # e.g., "punishable with fine. [BNS s.105]" -> "punishable with fine [BNS s.105]."
+        # Disambiguate trailing citations from leading citations of subsequent sentences
+        normalized_text = re.sub(
+            r'([.!?])\s*(\[\s*(?:BNS|BNSS|DOC)\s+[^\]]+\])(?=\s*(?:$|\n|[.!?]))',
+            r' \2\1',
+            text,
+            flags=re.IGNORECASE
+        )
+
         # 1. Protect punctuation inside quotation marks (both standard and smart quotes)
         def _mask_quoted_punct(match):
             quoted = match.group(0)
@@ -48,7 +61,7 @@ class CitationValidator:
                       .replace('?', '<QQMARK>')
             )
 
-        protected = re.sub(r'("[^"]*?"|“[^”]*?”)', _mask_quoted_punct, text)
+        protected = re.sub(r'("[^"]*?"|“[^”]*?”)', _mask_quoted_punct, normalized_text)
         protected = re.sub(r"('[^'\n]*?')", _mask_quoted_punct, protected)
 
         # 2. Protect abbreviations like s., sec., no., etc. from sentence split
@@ -220,7 +233,8 @@ class CitationValidator:
         )
 
         if not is_refusal_answer:
-            if not parsed_citations and sentences:
+            has_doc_citations = bool(re.search(r'\[\s*DOC\s+p\.\d+\s*\]', answer, re.IGNORECASE))
+            if not parsed_citations and not has_doc_citations and sentences:
                 # Answer provided without any citations at all
                 failure_reasons.append("Answer contains 0 statutory citations. All legal statements must cite retrieved evidence.")
 
@@ -230,7 +244,8 @@ class CitationValidator:
                 # If sentence makes strong legal claim, verify it contains an inline citation
                 if self._contains_legal_claim(s):
                     s_cits = self.parser.parse(s)
-                    if not s_cits:
+                    s_has_doc = bool(re.search(r'\[\s*DOC\s+p\.\d+\s*\]', s, re.IGNORECASE))
+                    if not s_cits and not s_has_doc:
                         uncited_claims.append(s)
 
             if uncited_claims:
